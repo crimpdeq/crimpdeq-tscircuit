@@ -21,7 +21,7 @@ with the HX711 replaced by a TI ADS1220 24-bit ADC.
 | AIN0 / AIN1 | load cell S+ / S− through 100 Ω each, 100 nF differential |
 | AIN2, AIN3, DRDY | not connected |
 
-Wire pads: J3 `E+ S+ S- E-` (E+ = 3V3, E− = GND), J4 `B+ SW B-`.
+Wire pads: J3 `E+ S+ S- E-` (E+ = 3V3, E− = GND), J4 `SW- SW+ B+ B-` (SW+ = B+, SW− = power-path input).
 
 ## Changes vs v2.0.0 beyond the ADC
 

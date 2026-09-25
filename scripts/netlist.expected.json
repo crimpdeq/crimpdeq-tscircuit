@@ -171,7 +171,7 @@
   "R13 pin2"
  ],
  "SW_BATT": [
-  "J4 SW",
+  "J4 SW_N",
   "Q2 pin3"
  ],
  "USB_DM": [
@@ -215,6 +215,7 @@
   "C18 pin1",
   "C6 pin1",
   "J4 BAT_P",
+  "J4 SW_P",
   "U2 VBAT",
   "U5 CELL",
   "U5 VDD"

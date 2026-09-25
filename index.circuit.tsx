@@ -191,7 +191,7 @@ export default ({ pours = true }: { pours?: boolean }) => (
       name="D8"
       displayName="D8 - B5819WS"
       pcbX={6.55}
-      pcbY={-6.128}
+      pcbY={-5.628}
       schSectionName="usb"
       schX={-25.5}
       schY={11.5}
@@ -301,17 +301,20 @@ export default ({ pours = true }: { pours?: boolean }) => (
       schSectionName="charger"
       schX={-7}
       schY={6}
+      // Switch wires on their own pads; SW+ next to B+ keeps the VBAT link short
       pads={[
+        { label: "SW_N", silk: "SW-" },
+        { label: "SW_P", silk: "SW+" },
         { label: "BAT_P", silk: "B+" },
-        { label: "SW", silk: "SW" },
         { label: "BAT_N", silk: "B-" },
       ]}
       silkOffsetX={-1.6}
       pcbX={7.0}
-      pcbY={-11.65}
+      pcbY={-11.1}
       connections={{
+        SW_N: "net.SW_BATT",
+        SW_P: "net.VBAT",
         BAT_P: "net.VBAT",
-        SW: "net.SW_BATT",
         BAT_N: "net.GND",
       }}
     />
@@ -694,7 +697,7 @@ export default ({ pours = true }: { pours?: boolean }) => (
       {...part(PARTS.R4k7)}
       layer="bottom"
       pcbX={3.4}
-      pcbY={1.85}
+      pcbY={1.8}
       pcbRotation={90}
       schSectionName="fuel"
       schX={8.5}
