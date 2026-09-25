@@ -1,11 +1,36 @@
 // Run each @tscircuit/checks PCB check separately so one crashing check
 // (e.g. the copper-pour boolean op) cannot hide the results of the others.
-// Usage: bun scripts/drc.ts [circuit.json]
+// Usage: bun scripts/drc.ts [--json] [circuit.json]
+//   --json prints {errors: [{check, type, message, center}], crashed: [check]}
 import { readFileSync } from "node:fs"
 import * as checks from "@tscircuit/checks"
 
-const file = process.argv[2] ?? "dist/index/circuit.json"
+const json = process.argv.includes("--json")
+const file = process.argv.slice(2).find((a) => !a.startsWith("--")) ?? "dist/index/circuit.json"
 const circuitJson = JSON.parse(readFileSync(file, "utf8"))
+const log = (line: string) => {
+  if (!json) console.log(line)
+}
+type Point = { x: number; y: number }
+const errors: { check: string; type: string; message: string; center?: Point }[] = []
+
+// Error location: its own center, else the first pad/port/via it references
+const positions = new Map<string, Point>()
+for (const e of circuitJson)
+  for (const idKey of ["pcb_port_id", "pcb_via_id", "pcb_smtpad_id", "pcb_plated_hole_id"])
+    if (e.type === idKey.slice(0, -3) && typeof e.x === "number") positions.set(e[idKey], { x: e.x, y: e.y })
+const locate = (e: any): Point | undefined => {
+  if (e.center) return e.center
+  const ids = [
+    ...(e.pcb_port_ids ?? []),
+    ...(e.pcb_pad_ids ?? []),
+    e.pcb_via_id,
+    e.pcb_port_id,
+    ...String(e.message ?? "").match(/pcb_(?:via|port)_\d+/g) ?? [],
+  ]
+  for (const id of ids) if (id && positions.has(id)) return positions.get(id)
+}
+const crashed: string[] = []
 
 const pcbChecks = [
   "checkEachPcbPortConnectedToPcbTraces",
@@ -69,14 +94,17 @@ let failures = 0
       !hasPadByHint(e),
   )
   failures += missing.length
-  console.log(`${missing.length ? "FAIL" : "ok  "} connectedPortsHavePads: ${missing.length} errors`)
-  for (const e of missing.slice(0, 8))
-    console.log(`       - ${names.get(e.source_component_id)}.${e.name} has no PCB pad`)
+  log(`${missing.length ? "FAIL" : "ok  "} connectedPortsHavePads: ${missing.length} errors`)
+  for (const e of missing) {
+    const message = `${names.get(e.source_component_id)}.${e.name} has no PCB pad`
+    errors.push({ check: "connectedPortsHavePads", type: "missing_pad", message })
+  }
+  for (const e of errors.slice(0, 8)) log(`       - ${e.message}`)
 }
 for (const name of pcbChecks) {
   const fn = (checks as any)[name]
   if (typeof fn !== "function") {
-    console.log(`?? ${name}: not exported`)
+    log(`?? ${name}: not exported`)
     continue
   }
   try {
@@ -88,15 +116,21 @@ for (const name of pcbChecks) {
       String(e.type).endsWith("_warning"),
     )
     failures += issues.length
-    console.log(
+    for (const e of issues)
+      errors.push({ check: name, type: e.type, message: e.message, center: locate(e) })
+    log(
       `${issues.length ? "FAIL" : "ok  "} ${name}: ${issues.length} errors, ${warnings.length} warnings`,
     )
     for (const e of [...issues, ...warnings].slice(0, 8)) {
-      console.log(`       - ${e.type}: ${e.message}`)
+      log(`       - ${e.type}: ${e.message}`)
     }
   } catch (err) {
-    console.log(`CRASH ${name}: ${(err as Error).message}`)
+    crashed.push(name)
+    log(`CRASH ${name}: ${(err as Error).message}`)
   }
 }
-console.log(failures ? `\n${failures} DRC errors` : "\nDRC clean")
+if (json) console.log(JSON.stringify({ errors, crashed }))
+// A crashed check proves nothing; checkCopperPourShorts crashes are covered by `tsci check shorts`
+const crashNote = crashed.length ? ` (not run, crashed: ${crashed.join(", ")})` : ""
+log(failures ? `\n${failures} DRC errors${crashNote}` : `\nDRC clean${crashNote}`)
 process.exit(failures ? 1 : 0)

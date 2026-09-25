@@ -34,8 +34,8 @@ below override the skill where they conflict.
 
 - Any change to PCB placement, footprints or routing rules re-routes the whole
   board, and the router often leaves shorts at this density. Re-roll with
-  `scripts/search.sh` (small passive nudges) and adopt a variant reported as
-  `DRC clean | shorts=0`.
+  `npm run search -- --adopt`, then `npm run verify` and
+  `python3 scripts/routing.py --update`.
 - Schematic-only edits (`schX`, `displayName`, sections) and 3D model offsets
   do not change routing; confirm that the routed traces are unchanged.
 - Design rules target PCBWay 4-layer: 5/5 mil, 0.3/0.5 mm vias, 0.3 mm copper
@@ -47,8 +47,8 @@ below override the skill where they conflict.
 - `tsci dev` watches the whole project and crashes when a file it saw is
   deleted. Create temporary files (variants, snapshots, unzipped exports)
   outside the project, or restart the server afterwards.
-- Put hard time limits on builds with `kill -9`; Bun ignores `SIGALRM`, and some
-  layouts hang after routing.
+- Put hard time limits on builds with `kill -9` (`scripts/search.py` does);
+  Bun ignores `SIGALRM`, and some layouts hang after routing.
 
 ## Manufacturing
 

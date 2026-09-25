@@ -56,22 +56,22 @@ Quote settings: 4 layers, 17 × 31.5 mm, 1.6 mm FR-4, min track/spacing 5/5 mil,
 min hole 0.3 mm, assembly on both sides. The centroid rotations come from
 tscircuit; ask PCBWay to confirm orientation against the assembly drawings.
 
-
 ## Routing
 
 Traces come from the tscircuit autorouter, which is deterministic: with the
 pinned tool versions the same design always routes the same way, and
 `scripts/routing.py` fails `verify` if the routed copper changes.
 
-At this density it sometimes leaves
-via-to-pad clearance violations or shorts that its own DRC misses, and any
-change to PCB placement or component definitions re-routes the whole board.
-After such a change, run `npm run verify`. If it fails, re-roll the routing
-with small passive nudges and adopt a clean variant:
+At this density the router sometimes leaves via-to-pad clearance violations or
+shorts that its own DRC misses, and any change to PCB placement, footprints or
+routing rules re-routes the whole board. After such a change:
 
 ```sh
-scripts/search.sh "a:mv('C10',0.05)" "b:mv('C9',0,-0.05)" "c:mv('R13',-0.05)"
-cp srch_a.circuit.tsx index.circuit.tsx   # the variant reported "DRC clean | shorts=0"
+npm run search -- --adopt        # nudges passives until the board routes clean
+npm run verify                   # fails on the routing baseline: expected
+python3 scripts/routing.py --update && npm run verify
 ```
 
-Then accept the new routing with `python3 scripts/routing.py --update`.
+`scripts/search.py` works in a scratch directory outside the project, builds 8
+variants at a time, nudges the passives nearest the remaining errors, and stops
+at the first variant with a clean DRC, no shorts and a clean placement check.
