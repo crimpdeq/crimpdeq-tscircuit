@@ -8,6 +8,9 @@ below override the skill where they conflict.
 
 - `tsci`, `bun` and TypeScript 5 are project-local: run through `npm run …` or
   `node_modules/.bin`. TypeScript 7 breaks `tsci`.
+- Dependencies are pinned exactly (`package.json` + `bun.lock`); install with
+  `bun install --frozen-lockfile`. Upgrading tscircuit can change routing and
+  break `scripts/patch-viewer.mjs`: re-run the search and verify afterwards.
 - `npm install` runs `scripts/patch-viewer.mjs`, which patches the browser
   viewer's hover labels. If it fails after a tscircuit update, update its patterns.
 

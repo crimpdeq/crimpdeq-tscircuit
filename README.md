@@ -35,7 +35,7 @@ Wire pads: J3 `E+ S+ S- E-` (E+ = 3V3, E− = GND), J4 `B+ SW B-`.
 ## Verify
 
 ```sh
-npm install
+bun install --frozen-lockfile   # exact tool versions from bun.lock
 npm run verify   # netlist baseline, placement, schematic, build, per-check DRC, gerber shorts
 npm run fab      # PCBWay package in dist/fab/
 ```
