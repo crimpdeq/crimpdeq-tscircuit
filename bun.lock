@@ -3,7 +3,7 @@
   "configVersion": 0,
   "workspaces": {
     "": {
-      "name": "crimpdeq-ads1220",
+      "name": "Crimpdeq - TSCircuit",
       "devDependencies": {
         "@resvg/resvg-js": "2.6.2",
         "@tscircuit/checks": "0.0.208",
