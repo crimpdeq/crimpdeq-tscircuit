@@ -50,7 +50,8 @@ aborts when its copper-pour check crashes. `scripts/netlist.py` and
 `dist/fab/` contains `pcbway_gerbers.zip` (Gerbers + drills), `pcbway_bom.csv`
 (grouped by manufacturer part number, with LCSC codes as sourcing hints and
 substitution notes), `pcbway_centroid.csv` (mm, origin at the board center) and
-top/bottom assembly drawings.
+top/bottom assembly drawings from `scripts/assembly.ts` (bottom mirrored, as seen
+from below; the corner triangle marks pin 1, or the cathode of diodes and LEDs).
 
 Quote settings: 4 layers, 17 × 31.5 mm, 1.6 mm FR-4, min track/spacing 5/5 mil,
 min hole 0.3 mm, assembly on both sides. The centroid rotations come from
