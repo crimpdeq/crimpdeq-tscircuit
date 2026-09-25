@@ -6,7 +6,7 @@
     "postinstall": "node scripts/patch-viewer.mjs",
     "dev": "tsci dev",
     "build": "tsci build index.circuit.tsx",
-    "verify": "python3 scripts/netlist.py && tsci check placement index.circuit.tsx && tsci check schematic-placement index.circuit.tsx && tsci build index.circuit.tsx && bun scripts/drc.ts && tsci check shorts dist/index/circuit.json",
+    "verify": "python3 scripts/netlist.py && tsci check placement index.circuit.tsx && tsci check schematic-placement index.circuit.tsx && tsci build index.circuit.tsx && python3 scripts/routing.py && bun scripts/drc.ts && tsci check shorts dist/index/circuit.json",
     "fab": "scripts/fab.sh",
     "render": "bun scripts/render.ts",
     "typecheck": "tsc --noEmit"

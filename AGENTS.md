@@ -23,6 +23,9 @@ below override the skill where they conflict.
   `tsci check shorts` catch them.
 - Connectivity changes: update the baseline with
   `python3 scripts/netlist.py --update` only after reviewing the diff.
+- Routing is deterministic for a given design and tool versions.
+  `scripts/routing.py` fails `verify` when routed copper changes; accept a new
+  routing with `--update` only after the rest of `verify` passes.
 - Check that edits to schematic props do not drop PCB pads.
   `schPinArrangement` on a `standard="usb_c"` connector silently removed them;
   `scripts/drc.ts` (`connectedPortsHavePads`) guards this.

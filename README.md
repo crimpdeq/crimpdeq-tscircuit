@@ -36,9 +36,14 @@ Wire pads: J3 `E+ S+ S- E-` (E+ = 3V3, E− = GND), J4 `B+ SW B-`.
 
 ```sh
 bun install --frozen-lockfile   # exact tool versions from bun.lock
-npm run verify   # netlist baseline, placement, schematic, build, per-check DRC, gerber shorts
+npm run verify   # netlist + routing baselines, placement, schematic, build, per-check DRC, gerber shorts
 npm run fab      # PCBWay package in dist/fab/
 ```
+
+`scripts/drc.ts` runs every PCB check individually because the built-in DRC
+aborts when its copper-pour check crashes. `scripts/netlist.py` and
+`scripts/routing.py` compare connectivity and routed copper against
+`scripts/netlist.expected.json` and `scripts/routing.expected.json`.
 
 ## PCBWay order
 
@@ -51,13 +56,14 @@ Quote settings: 4 layers, 17 × 31.5 mm, 1.6 mm FR-4, min track/spacing 5/5 mil,
 min hole 0.3 mm, assembly on both sides. The centroid rotations come from
 tscircuit; ask PCBWay to confirm orientation against the assembly drawings.
 
-`scripts/drc.ts` runs every PCB check individually because the built-in DRC
-aborts when its copper-pour check crashes. `scripts/netlist.py` compares
-connectivity against `scripts/netlist.expected.json`.
 
 ## Routing
 
-Traces come from the tscircuit autorouter. At this density it sometimes leaves
+Traces come from the tscircuit autorouter, which is deterministic: with the
+pinned tool versions the same design always routes the same way, and
+`scripts/routing.py` fails `verify` if the routed copper changes.
+
+At this density it sometimes leaves
 via-to-pad clearance violations or shorts that its own DRC misses, and any
 change to PCB placement or component definitions re-routes the whole board.
 After such a change, run `npm run verify`. If it fails, re-roll the routing
@@ -67,3 +73,5 @@ with small passive nudges and adopt a clean variant:
 scripts/search.sh "a:mv('C10',0.05)" "b:mv('C9',0,-0.05)" "c:mv('R13',-0.05)"
 cp srch_a.circuit.tsx index.circuit.tsx   # the variant reported "DRC clean | shorts=0"
 ```
+
+Then accept the new routing with `python3 scripts/routing.py --update`.
