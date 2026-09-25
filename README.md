@@ -22,6 +22,7 @@ with the HX711 replaced by a TI ADS1220 24-bit ADC.
 | AIN2, AIN3, DRDY | not connected |
 
 Wire pads: J3 `E+ S+ S- E-` (E+ = 3V3, E− = GND), J4 `SW- SW+ B+ B-` (SW+ = B+, SW− = power-path input).
+v2.0.0 names these the other way round: its `SW+` pad is the power-path input and `VBAT` is the battery.
 
 ## Changes vs v2.0.0 beyond the ADC
 
