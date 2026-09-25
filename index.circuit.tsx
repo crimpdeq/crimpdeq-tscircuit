@@ -339,6 +339,8 @@ export default ({ pours = true }: { pours?: boolean }) => (
       layer="bottom"
       pcbX={5.9}
       pcbY={-5.406}
+      // Reference designator above the part, clear of the J4 labels below it
+      pcbSx={{ "& silkscreentext": { pcbY: 1.7 } }}
       schSectionName="pwrpath"
       schX={5}
       schY={9}

@@ -5,8 +5,8 @@ type WirePad = { label: string; silk: string }
 
 /**
  * Vertical column of plated wire-solder pads, pin1 at the top. Each pad gets a
- * silkscreen label offset horizontally by `silkOffsetX`. Bare pads, so they are
- * excluded from assembly.
+ * silkscreen label on both sides, offset horizontally by `silkOffsetX`. Bare
+ * pads, so they are excluded from assembly.
  */
 export const WirePads = ({
   pads,
@@ -52,6 +52,7 @@ export const WirePads = ({
             <Fragment key={`${pad.label}-silk`}>
               <silkscreentext
                 text={pad.silk}
+                layers={["top", "bottom"]}
                 pcbX={silkOffsetX}
                 pcbY={top - i * pitch}
                 anchorAlignment="center"
