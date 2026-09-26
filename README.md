@@ -22,13 +22,15 @@ with the HX711 replaced by a TI ADS1220 24-bit ADC.
 | AIN2, AIN3, DRDY | not connected |
 
 Wire pads: J3 `E+ S+ S- E-` (E+ = 3V3, E− = GND), J4 `SW- SW+ B+ B-` (SW+ = B+, SW− = power-path input).
+v2.0.0 names these the other way round: its `SW+` pad is the power-path input and `VBAT` is the battery.
 
 ## Changes vs v2.0.0 beyond the ADC
 
 - HX711 support parts (Q1, R5, R6, C11 VBG) removed; ADS1220 decoupling added.
 - Smaller, equivalent parts: L1 FTC252012S2R2MBCA (2520, 2.2 µH, 3 A), D2/D8 B5819WS (SOD-323).
-- RGB LED: XL-2121RGBC-2812B (2 × 2 mm, WS2812 protocol, rated 3.0–5.5 V; the
-  WS2812B-5050 is rated 3.7–5.3 V but was run at 3.3 V).
+- RGB LED: XL-2121RGBC-2812B (2 × 2 mm, WS2812 protocol). Its datasheet gives
+  3.0–5.5 V only as the supply limit and full function at 4.5–5.5 V, so at 3.3 V
+  blue and green may be dim; the WS2812B-5050 (3.7–5.3 V) was also run at 3.3 V.
 - Added: 4.7 kΩ I2C pull-ups (MAX17048), 100 nF at the RGB LED, a battery GND pad (B−).
 - USB-C shield tied directly to GND (R17 0 Ω removed).
 
@@ -50,7 +52,8 @@ aborts when its copper-pour check crashes. `scripts/netlist.py` and
 `dist/fab/` contains `pcbway_gerbers.zip` (Gerbers + drills), `pcbway_bom.csv`
 (grouped by manufacturer part number, with LCSC codes as sourcing hints and
 substitution notes), `pcbway_centroid.csv` (mm, origin at the board center) and
-top/bottom assembly drawings.
+top/bottom assembly drawings from `scripts/assembly.ts` (bottom mirrored, as seen
+from below; the corner triangle marks pin 1, or the cathode of diodes and LEDs).
 
 Quote settings: 4 layers, 17 × 31.5 mm, 1.6 mm FR-4, min track/spacing 5/5 mil,
 min hole 0.3 mm, assembly on both sides. The centroid rotations come from

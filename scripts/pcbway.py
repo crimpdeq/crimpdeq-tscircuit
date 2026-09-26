@@ -19,7 +19,7 @@ PARTS = {
     "B5819WS": ("MCC (B5819WS-TP) or equivalent", "SOD-323", "Schottky 40V 1A"),
     "LESD5D5.0CT1G": ("LRC (Leshan Radio)", "SOD-523", "ESD protection 5V"),
     "LESD8D3.3CAT5G": ("LRC (Leshan Radio)", "SOD-882", "ESD protection 3.3V bidirectional"),
-    "XL-2121RGBC-2812B": ("XINGLIGHT", "2.1x2.1mm 4-pin", "RGB LED, WS2812 protocol, 3.0-5.5V"),
+    "XL-2121RGBC-2812B": ("XINGLIGHT", "2.1x2.1mm 4-pin", "RGB LED, WS2812 protocol"),
     "FTC252012S2R2MBCA": ("FH (Guangdong Fenghua)", "2520 (1008)", "Power inductor 2.2uH 3A 55mOhm"),
     "TYPE-C-31-M-12": ("Korean Hroparts Elec (HRO)", "USB-C 16P SMD + 4 THT shell", "USB-C 2.0 receptacle"),
     "KT-0603R": ("Hubei KENTO Elec", "0603", "LED red"),

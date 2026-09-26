@@ -1,7 +1,7 @@
 #!/bin/bash
 # Build the PCBWay order package from dist/index/circuit.json into dist/fab/:
 #   pcbway_gerbers.zip (Gerbers + drills), pcbway_bom.csv, pcbway_centroid.csv,
-#   assembly-top.svg / assembly-bottom.svg
+#   assembly-top.svg / assembly-bottom.svg (bottom mirrored, viewed from the bottom)
 set -euo pipefail
 cd "$(dirname "$0")/.."
 export PATH="$PWD/node_modules/.bin:$PATH"
@@ -20,6 +20,5 @@ rm -f "$tmp/gerbers/bom.csv" "$tmp/gerbers/pick_and_place.csv"
 mv "$tmp/pcbway_gerbers.zip" "$out/pcbway_gerbers.zip"
 
 python3 scripts/pcbway.py
-tsci export dist/index/circuit.json -f assembly-svg --layer top -o "$out/assembly-top.svg" > /dev/null
-tsci export dist/index/circuit.json -f assembly-svg --layer bottom -o "$out/assembly-bottom.svg" > /dev/null
+bun scripts/assembly.ts dist/index/circuit.json "$out" > /dev/null
 ls -1 "$out"
