@@ -23,7 +23,6 @@ const pinLabels = {
 const pinAttributes = {
   pin2: { requiresGround: true },
   pin3: { requiresGround: true },
-  pin4: { doNotConnect: true },
   pin5: { doNotConnect: true },
   pin10: { requiresPower: true },
   pin11: { requiresPower: true },

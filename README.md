@@ -15,18 +15,27 @@ with the HX711 replaced by a TI ADS1220 24-bit ADC.
 
 | ADS1220 | Net |
 | --- | --- |
-| AVDD, DVDD, REFP0 | 3V3 |
-| AVSS, DGND, REFN0, CLK, EP | GND |
-| SCLK / DIN / DOUT/DRDY / CS | GPIO5 / GPIO4 / GPIO1 / GPIO3 |
+| AVDD, DVDD | 3V3 |
+| REFP0 | load cell E+: 3V3 through 10 Ω (R22), 1 µF to GND (C14) |
+| REFN0, AIN3/REFN1 | load cell E−, switched to AVSS by the internal low-side switch |
+| AVSS, DGND, CLK, EP | GND |
+| SCLK / DIN / DOUT/DRDY / CS | GPIO5 / GPIO4 / GPIO1 / GPIO3, CS pulled up to 3V3 (100 kΩ) |
 | AIN0 / AIN1 | load cell S+ / S− through 100 Ω each, 100 nF differential |
-| AIN2, AIN3, DRDY | not connected |
+| AIN2, DRDY | not connected |
 
-Wire pads: J3 `E+ S+ S- E-` (E+ = 3V3, E− = GND), J4 `SW- SW+ B+ B-` (SW+ = B+, SW− = power-path input).
+The bridge is powered only while the low-side switch is closed: firmware must set
+`PSW = 1` (config register 2), which closes the switch on START/SYNC and opens it on
+POWERDOWN. REFP0 and REFN0 sense the bridge on both sides, so the reference stays
+ratiometric across R22 and the switch.
+
+Wire pads: J3 `E+ S+ S- E-` (E+ = filtered 3V3, E− = low-side switch), J4 `SW- SW+ B+ B-` (SW+ = B+, SW− = power-path input).
 v2.0.0 names these the other way round: its `SW+` pad is the power-path input and `VBAT` is the battery.
 
 ## Changes vs v2.0.0 beyond the ADC
 
 - HX711 support parts (Q1, R5, R6, C11 VBG) removed; ADS1220 decoupling added.
+- Load cell excitation switched off in power-down by the ADS1220 low-side switch
+  (v2.0.0 turns the HX711 E+ regulator off instead).
 - Smaller, equivalent parts: L1 FTC252012S2R2MBCA (2520, 2.2 µH, 3 A), D2/D8 B5819WS (SOD-323).
 - RGB LED: XL-2121RGBC-2812B (2 × 2 mm, WS2812 protocol). Its datasheet gives
   3.0–5.5 V only as the supply limit and full function at 4.5–5.5 V, so at 3.3 V

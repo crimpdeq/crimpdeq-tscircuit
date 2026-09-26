@@ -31,9 +31,9 @@ PARTS = {
     "CL10A106KP8NNNC": ("Samsung Electro-Mechanics", "0603", "10uF 10V X5R 10%"),
     "CL21A106KAYNNNE": ("Samsung Electro-Mechanics", "0805", "10uF 25V X5R 10%"),
 }
-for mpn, value in [("0402WGF0000TCE", "0R"), ("0402WGF1000TCE", "100R"), ("0402WGF1001TCE", "1k"),
-                   ("0402WGF4701TCE", "4.7k"), ("0402WGF5101TCE", "5.1k"), ("0402WGF1002TCE", "10k"),
-                   ("0402WGF2212TCE", "22.1k"), ("0402WGF1003TCE", "100k")]:
+for mpn, value in [("0402WGF0000TCE", "0R"), ("0402WGF100JTCE", "10R"), ("0402WGF1000TCE", "100R"),
+                   ("0402WGF1001TCE", "1k"), ("0402WGF4701TCE", "4.7k"), ("0402WGF5101TCE", "5.1k"),
+                   ("0402WGF1002TCE", "10k"), ("0402WGF2212TCE", "22.1k"), ("0402WGF1003TCE", "100k")]:
     PARTS[mpn] = ("UNI-ROYAL", "0402", f"Resistor {value} 1% 62.5mW")
 NOTES = {mpn: "Equivalent substitute OK (same value, package, rating)"
          for mpn, (_, _, desc) in PARTS.items()
