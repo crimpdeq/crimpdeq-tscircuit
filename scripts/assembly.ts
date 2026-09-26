@@ -2,12 +2,13 @@
 // `tsci export -f assembly-svg` ignores --layer and overlays both sides, so each
 // side is filtered here; the bottom is mirrored, as seen looking at the bottom.
 // Usage: bun scripts/assembly.ts [circuit.json] [outDir]
-import { readFileSync, writeFileSync } from "node:fs"
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import { convertCircuitJsonToAssemblySvg } from "circuit-to-svg"
 
 const input = process.argv[2] ?? "dist/index/circuit.json"
 const outDir = process.argv[3] ?? "dist/fab"
 const circuitJson: any[] = JSON.parse(readFileSync(input, "utf8"))
+mkdirSync(outDir, { recursive: true })
 
 const WIDTH = 800
 const CAPTION_HEIGHT = 40
