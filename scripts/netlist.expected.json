@@ -10,6 +10,7 @@
   "U3 AIN1"
  ],
  "ADC_CS": [
+  "R23 pin1",
   "U1 IO3",
   "U3 N_CS"
  ],
@@ -95,7 +96,6 @@
   "J2 EH2",
   "J2 EH3",
   "J2 EH4",
-  "J3 E_N",
   "J4 BAT_N",
   "R16 pin2",
   "R18 pin2",
@@ -137,7 +137,6 @@
   "U3 CLK",
   "U3 DGND",
   "U3 EP",
-  "U3 REFN0",
   "U5 CTG",
   "U5 EP",
   "U5 GND",
@@ -153,6 +152,17 @@
   "R20 pin2",
   "U1 IO6",
   "U5 SDA"
+ ],
+ "LC_EN": [
+  "J3 E_N",
+  "U3 AIN3",
+  "U3 REFN0"
+ ],
+ "LC_EP": [
+  "C14 pin1",
+  "J3 E_P",
+  "R22 pin2",
+  "U3 REFP0"
  ],
  "LC_SN": [
   "J3 S_N",
@@ -191,7 +201,6 @@
   "C10 pin1",
   "C11 pin1",
   "C13 pin1",
-  "C14 pin1",
   "C16 pin1",
   "C17 pin1",
   "C19 pin1",
@@ -200,16 +209,16 @@
   "C9 pin1",
   "D3 pin1",
   "D4 VDD",
-  "J3 E_P",
   "L1 pin2",
   "R1 pin1",
   "R15 pin1",
   "R20 pin1",
   "R21 pin1",
+  "R22 pin1",
+  "R23 pin2",
   "U1 3V3",
   "U3 AVDD",
-  "U3 DVDD",
-  "U3 REFP0"
+  "U3 DVDD"
  ],
  "VBAT": [
   "C18 pin1",

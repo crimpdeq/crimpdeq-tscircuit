@@ -35,6 +35,7 @@ const J2_Y = BOTTOM + 5.39 - USB_OVERHANG
 // Passive parts: manufacturer part number + distributor code (LCSC) for PCBWay sourcing
 const PARTS = {
   R0: { mpn: "0402WGF0000TCE", lcsc: "C17168" },
+  R10: { mpn: "0402WGF100JTCE", lcsc: "C25077" },
   R100: { mpn: "0402WGF1000TCE", lcsc: "C25076" },
   R1k: { mpn: "0402WGF1001TCE", lcsc: "C11702" },
   R4k7: { mpn: "0402WGF4701TCE", lcsc: "C25900" },
@@ -84,6 +85,8 @@ export default ({ pours = true }: { pours?: boolean }) => (
   >
     <net name="GND" isGroundNet />
     <net name="V3_3" isPowerNet nominalTraceWidth="0.25mm" />
+    <net name="LC_EP" nominalTraceWidth="0.25mm" />
+    <net name="LC_EN" />
     <net name="VBUS_IN" isPowerNet nominalTraceWidth="0.3mm" />
     <net name="VBUS" isPowerNet nominalTraceWidth="0.3mm" />
     <net name="VSYS" isPowerNet nominalTraceWidth="0.3mm" />
@@ -243,6 +246,7 @@ export default ({ pours = true }: { pours?: boolean }) => (
       layer="bottom"
       pcbX={1.8}
       pcbY={-14.8}
+      pcbRotation={180}
       schSectionName="fuel"
       schX={0}
       schY={-8.5}
@@ -648,6 +652,7 @@ export default ({ pours = true }: { pours?: boolean }) => (
       {...part(PARTS.C100n)}
       pcbX={-6.3}
       pcbY={-5.256}
+      pcbRotation={180}
       schSectionName="decoupling"
       schX={-13.75}
       schY={-19.1}
@@ -685,7 +690,8 @@ export default ({ pours = true }: { pours?: boolean }) => (
       {...part(PARTS.C100n)}
       layer="bottom"
       pcbX={6.3}
-      pcbY={2.68}
+      pcbY={-1.15}
+      pcbRotation={180}
       schSectionName="fuel"
       schX={1.2}
       schY={-8.5}
@@ -739,8 +745,11 @@ export default ({ pours = true }: { pours?: boolean }) => (
         DGND: "net.GND",
         AVSS: "net.GND",
         EP: "net.GND",
-        REFN0: "net.GND",
-        REFP0: "net.V3_3",
+        // Bridge low side on the internal low-side switch (PSW); REFN0 senses
+        // it above the switch so the reference stays ratiometric
+        AIN3: "net.LC_EN",
+        REFN0: "net.LC_EN",
+        REFP0: "net.LC_EP",
         AVDD: "net.V3_3",
         DVDD: "net.V3_3",
         AIN0: "net.ADC_AIN0",
@@ -781,21 +790,6 @@ export default ({ pours = true }: { pours?: boolean }) => (
       connections={{ pin1: "net.V3_3", pin2: "net.GND" }}
     />
     <capacitor
-      name="C14"
-      capacitance="100nF"
-      footprint="0402"
-      {...part(PARTS.C100n)}
-      layer="bottom"
-      pcbX={-6.12}
-      pcbY={-2.88}
-      pcbRotation={90}
-      schSectionName="decoupling"
-      schX={-15.0}
-      schY={-20.7}
-      schRotation={-90}
-      connections={{ pin1: "net.V3_3", pin2: "net.GND" }}
-    />
-    <capacitor
       name="C10"
       capacitance="10uF"
       footprint="0603"
@@ -809,6 +803,52 @@ export default ({ pours = true }: { pours?: boolean }) => (
       schRotation={-90}
       connections={{ pin1: "net.V3_3", pin2: "net.GND" }}
     />
+    {/* Bridge excitation and REFP0 share one node, RC-filtered from 3V3 */}
+    <resistor
+      name="R22"
+      resistance="10"
+      footprint="0402"
+      {...part(PARTS.R10)}
+      layer="bottom"
+      pcbX={-7.32}
+      pcbY={-2.88}
+      pcbRotation={270}
+      schSectionName="adc"
+      schX={18}
+      schY={-11.5}
+      schRotation={-90}
+      connections={{ pin1: "net.V3_3", pin2: "net.LC_EP" }}
+    />
+    <capacitor
+      name="C14"
+      capacitance="1uF"
+      footprint="0402"
+      {...part(PARTS.C1u)}
+      layer="bottom"
+      pcbX={-6.32}
+      pcbY={-2.88}
+      pcbRotation={90}
+      schSectionName="adc"
+      schX={20}
+      schY={-12.5}
+      schRotation={-90}
+      connections={{ pin1: "net.LC_EP", pin2: "net.GND" }}
+    />
+    {/* Keeps the ADC deselected while the ESP32-C3 boots or sleeps */}
+    <resistor
+      name="R23"
+      resistance="100k"
+      footprint="0402"
+      {...part(PARTS.R100k)}
+      layer="bottom"
+      pcbX={-1.9}
+      pcbY={-5.85}
+      schSectionName="adc"
+      schX={29}
+      schY={-5.5}
+      schRotation={-90}
+      connections={{ pin1: "net.ADC_CS", pin2: "net.V3_3" }}
+    />
     {/* Input RC filter: 100R + 100R + 100nF differential */}
     <resistor
       name="R7"
@@ -816,9 +856,8 @@ export default ({ pours = true }: { pours?: boolean }) => (
       footprint="0402"
       {...part(PARTS.R100)}
       layer="bottom"
-      pcbX={-7.4}
-      pcbY={-1.25}
-      pcbRotation={90}
+      pcbX={-5.0}
+      pcbY={1.15}
       schSectionName="adc"
       schX={18}
       schY={-7}
@@ -831,9 +870,8 @@ export default ({ pours = true }: { pours?: boolean }) => (
       footprint="0402"
       {...part(PARTS.R100)}
       layer="bottom"
-      pcbX={-7.4}
-      pcbY={-3.811}
-      pcbRotation={90}
+      pcbX={-7.0}
+      pcbY={0.1}
       schSectionName="adc"
       schX={18}
       schY={-9}
@@ -846,9 +884,8 @@ export default ({ pours = true }: { pours?: boolean }) => (
       footprint="0402"
       {...part(PARTS.C100n)}
       layer="bottom"
-      pcbX={-7.4}
-      pcbY={0.7}
-      pcbRotation={90}
+      pcbX={-5.0}
+      pcbY={0.1}
       schSectionName="adc"
       schX={20}
       schY={-8}
@@ -871,10 +908,10 @@ export default ({ pours = true }: { pours?: boolean }) => (
       pcbX={-7.0}
       pcbY={-10.55}
       connections={{
-        E_P: "net.V3_3",
+        E_P: "net.LC_EP",
         S_P: "net.LC_SP",
         S_N: "net.LC_SN",
-        E_N: "net.GND",
+        E_N: "net.LC_EN",
       }}
     />
 
@@ -926,12 +963,21 @@ export default ({ pours = true }: { pours?: boolean }) => (
       height={2.6}
       layers={["top", "inner1", "inner2"]}
     />
-    {/* Keep the GND pour clear of the E+ (3V3) wire pad */}
+    {/* Keep the GND pour clear of the E+ and E- wire pads */}
     <keepout
       shape="circle"
       radius={1.0}
       pcbX={-7.0}
       pcbY={-7.25}
+      layers={["top", "inner1", "inner2", "bottom"]}
+      allowTraces
+      allowPlacements
+    />
+    <keepout
+      shape="circle"
+      radius={1.0}
+      pcbX={-7.0}
+      pcbY={-13.85}
       layers={["top", "inner1", "inner2", "bottom"]}
       allowTraces
       allowPlacements
