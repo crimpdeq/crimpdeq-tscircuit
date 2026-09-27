@@ -9,10 +9,13 @@ out="$PWD/dist/fab"
 # Stage outside the project: `tsci dev` watches it and crashes on files that vanish
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
-mkdir -p "$out" "$tmp/gerbers"
+mkdir -p "$out" "$tmp/gerbers" "$tmp/fab"
 
+# Solder paste and floating GND pour fixes (scripts/fab-json.ts); the exporter
+# only takes a file named circuit.json
+bun scripts/fab-json.ts dist/index/circuit.json "$tmp/fab/circuit.json"
 # The exporter's pick-and-place rotation notes refer to the JLCPCB parts database; unused here
-tsci export dist/index/circuit.json -f gerbers -o "$tmp/tscircuit.zip" 2>&1 |
+tsci export "$tmp/fab/circuit.json" -f gerbers -o "$tmp/tscircuit.zip" 2>&1 |
   grep -v "jlcpcb pick-and-place rotation\|^Exported to" || true
 unzip -q "$tmp/tscircuit.zip" -d "$tmp/gerbers"
 rm -f "$tmp/gerbers/bom.csv" "$tmp/gerbers/pick_and_place.csv"

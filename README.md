@@ -53,7 +53,8 @@ v2.0.0 names these the other way round: its `SW+` pad is the power-path input an
 
 ```sh
 bun install --frozen-lockfile   # exact tool versions from bun.lock
-npm run verify   # netlist + routing baselines, placement, schematic, build, per-check DRC, gerber shorts
+npm run verify   # netlist + routing baselines, placement, schematic, build, per-check DRC,
+                 # gerber shorts, fab paste and copper
 npm run fab      # PCBWay package in dist/fab/
 ```
 
@@ -62,6 +63,11 @@ aborts when its copper-pour check crashes, and adds minimum trace width and 3V3
 supply topology checks. `scripts/netlist.py` and `scripts/routing.py` compare
 connectivity and routed copper against `scripts/netlist.expected.json` and
 `scripts/routing.expected.json`.
+
+`scripts/fab-json.ts` fixes the paste and GND pours in the copy of `circuit.json`
+that `npm run fab` exports, and checks the result: tscircuit leaves pill and
+polygon pads without paste, shrinks all paste to 49 % of the pad area, pastes
+every plated hole on both sides, and leaves floating pour copper.
 
 ## PCBWay order
 
@@ -74,6 +80,16 @@ from below; the corner triangle marks pin 1, or the cathode of diodes and LEDs).
 Quote settings: 4 layers, 17 × 31.5 mm, 1.6 mm FR-4, min track/spacing 5/5 mil,
 min hole 0.3 mm, assembly on both sides. The centroid rotations come from
 tscircuit; ask PCBWay to confirm orientation against the assembly drawings.
+
+Assembly notes for PCBWay:
+
+- Reflow the bottom side first; the top carries the heavy parts (U1, J2).
+- J2's four shell legs are pin-in-paste in the top reflow: top paste over the leg
+  pads, none on the bottom.
+- The J3/J4 wire pads have no paste; the load cell and battery wires are
+  hand-soldered afterwards.
+- Paste is 1:1 on normal pads and 50–60 % on the thermal pads (U1 EPAD, U3 and
+  U5 exposed pads).
 
 ## Routing
 
