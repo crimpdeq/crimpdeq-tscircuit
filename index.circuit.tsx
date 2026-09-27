@@ -36,7 +36,6 @@ const J2_Y = BOTTOM + 5.39 - USB_OVERHANG
 const PARTS = {
   R0: { mpn: "0402WGF0000TCE", lcsc: "C17168" },
   R10: { mpn: "0402WGF100JTCE", lcsc: "C25077" },
-  R100: { mpn: "0402WGF1000TCE", lcsc: "C25076" },
   R1k: { mpn: "0402WGF1001TCE", lcsc: "C11702" },
   R4k7: { mpn: "0402WGF4701TCE", lcsc: "C25900" },
   R5k1: { mpn: "0402WGF5101TCE", lcsc: "C25905" },
@@ -45,6 +44,7 @@ const PARTS = {
   R100k: { mpn: "0402WGF1003TCE", lcsc: "C25741" },
   C22p: { mpn: "0402CG220J500NT", lcsc: "C1555" },
   C10n: { mpn: "CL05B103KB5NNNC", lcsc: "C15195" },
+  C10n_C0G: { mpn: "GRM1555C1E103JE01D", lcsc: "C3855387" },
   C100n: { mpn: "CL05B104KO5NNNC", lcsc: "C1525" },
   C1u: { mpn: "CL05A105KA5NQNC", lcsc: "C52923" },
   C4u7_0603: { mpn: "CL10A475KO8NNNC", lcsc: "C19666" },
@@ -254,12 +254,12 @@ export default ({ pours = true }: { pours?: boolean }) => (
       schRotation={-90}
       connections={{ pin1: "net.VBAT", pin2: "net.GND" }}
     />
-    {/* 10k PROG -> 100 mA charge current */}
+    {/* 4.7k PROG -> 213 mA charge current (1000 V / R_PROG) */}
     <resistor
       name="R2"
-      resistance="10k"
+      resistance="4.7k"
       footprint="0402"
-      {...part(PARTS.R10k)}
+      {...part(PARTS.R4k7)}
       layer="bottom"
       pcbX={1.2}
       pcbY={-13.05}
@@ -868,12 +868,13 @@ export default ({ pours = true }: { pours?: boolean }) => (
       schRotation={-90}
       connections={{ pin1: "net.ADC_CS", pin2: "net.V3_3" }}
     />
-    {/* Input RC filter: 100R + 100R + 100nF differential */}
+    {/* Input RC filter: 1k + 1k + 10nF C0G differential (~8 kHz); C0G because
+        X7R is piezoelectric and TI asks for C0G here */}
     <resistor
       name="R7"
-      resistance="100"
+      resistance="1k"
       footprint="0402"
-      {...part(PARTS.R100)}
+      {...part(PARTS.R1k)}
       layer="bottom"
       pcbX={-4.95}
       pcbY={1.1}
@@ -885,9 +886,9 @@ export default ({ pours = true }: { pours?: boolean }) => (
     />
     <resistor
       name="R8"
-      resistance="100"
+      resistance="1k"
       footprint="0402"
-      {...part(PARTS.R100)}
+      {...part(PARTS.R1k)}
       layer="bottom"
       pcbX={-7.0}
       pcbY={0.1}
@@ -899,9 +900,9 @@ export default ({ pours = true }: { pours?: boolean }) => (
     />
     <capacitor
       name="C12"
-      capacitance="100nF"
+      capacitance="10nF"
       footprint="0402"
-      {...part(PARTS.C100n)}
+      {...part(PARTS.C10n_C0G)}
       layer="bottom"
       pcbX={-5.0}
       pcbY={0.1}

@@ -21,7 +21,7 @@ with the HX711 replaced by a TI ADS1220 24-bit ADC.
 | AVSS, DGND, CLK, EP | GND |
 | SCLK / DIN / DOUT/DRDY / CS | GPIO5 / GPIO4 / GPIO1 / GPIO3, CS pulled up to 3V3 (100 kΩ) |
 | DRDY | GPIO0 |
-| AIN0 / AIN1 | load cell S+ / S− through 100 Ω each, 100 nF differential |
+| AIN0 / AIN1 | load cell S+ / S− through 1 kΩ each, 10 nF C0G differential (~8 kHz) |
 | AIN2 | not connected |
 
 The bridge is powered only while the low-side switch is closed: firmware must set
