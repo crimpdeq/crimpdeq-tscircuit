@@ -85,6 +85,7 @@ export default ({ pours = true }: { pours?: boolean }) => (
   >
     <net name="GND" isGroundNet />
     <net name="V3_3" isPowerNet nominalTraceWidth="0.25mm" />
+    <net name="V3_3_LED" isPowerNet nominalTraceWidth="0.25mm" />
     <net name="LC_EP" nominalTraceWidth="0.25mm" />
     <net name="LC_EN" />
     <net name="VBUS_IN" isPowerNet nominalTraceWidth="0.3mm" />
@@ -407,7 +408,7 @@ export default ({ pours = true }: { pours?: boolean }) => (
       footprint="0402"
       {...part(PARTS.R10k)}
       layer="bottom"
-      pcbX={0.3}
+      pcbX={0.35}
       pcbY={8.75}
       pcbRotation={270}
       schSectionName="buck"
@@ -504,6 +505,7 @@ export default ({ pours = true }: { pours?: boolean }) => (
       connections={{
         "3V3": "net.V3_3",
         EN: "net.CHIP_PU",
+        IO0: "net.ADC_DRDY",
         IO1: "net.ADC_DOUT",
         IO2: "net.LED_DATA",
         IO3: "net.ADC_CS",
@@ -643,7 +645,23 @@ export default ({ pours = true }: { pours?: boolean }) => (
       schSectionName="led"
       schX={-7.5}
       schY={-6}
-      connections={{ DIN: "net.LED_DIN", VDD: "net.V3_3", GND: "net.GND" }}
+      connections={{ DIN: "net.LED_DIN", VDD: "net.V3_3_LED", GND: "net.GND" }}
+    />
+    {/* LED supply link: its 3V3 pad is nearer C13 than U3, so the router joins
+        it there and the LED PWM current stays off the U3 AVDD trace */}
+    <resistor
+      name="R24"
+      resistance="0"
+      footprint="0402"
+      {...part(PARTS.R0)}
+      pcbX={0.5}
+      pcbY={-2.2}
+      pcbRotation={180}
+      schSectionName="led"
+      schX={-9}
+      schY={-3.5}
+      schRotation={-90}
+      connections={{ pin1: "net.V3_3", pin2: "net.V3_3_LED" }}
     />
     <capacitor
       name="C19"
@@ -653,11 +671,11 @@ export default ({ pours = true }: { pours?: boolean }) => (
       pcbX={-6.3}
       pcbY={-5.256}
       pcbRotation={180}
-      schSectionName="decoupling"
-      schX={-13.75}
-      schY={-19.1}
+      schSectionName="led"
+      schX={-6}
+      schY={-3.5}
       schRotation={-90}
-      connections={{ pin1: "net.V3_3", pin2: "net.GND" }}
+      connections={{ pin1: "net.V3_3_LED", pin2: "net.GND" }}
     />
 
     {/* ---------------- Fuel gauge ---------------- */}
@@ -757,6 +775,7 @@ export default ({ pours = true }: { pours?: boolean }) => (
         SCLK: "net.ADC_SCLK",
         DIN: "net.ADC_DIN",
         DOUT: "net.ADC_DOUT",
+        N_DRDY: "net.ADC_DRDY",
         N_CS: "net.ADC_CS",
       }}
     />
@@ -856,8 +875,8 @@ export default ({ pours = true }: { pours?: boolean }) => (
       footprint="0402"
       {...part(PARTS.R100)}
       layer="bottom"
-      pcbX={-5.0}
-      pcbY={1.15}
+      pcbX={-4.95}
+      pcbY={1.1}
       schSectionName="adc"
       schX={18}
       schY={-7}

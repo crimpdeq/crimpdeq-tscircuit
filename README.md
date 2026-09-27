@@ -20,8 +20,9 @@ with the HX711 replaced by a TI ADS1220 24-bit ADC.
 | REFN0, AIN3/REFN1 | load cell E−, switched to AVSS by the internal low-side switch |
 | AVSS, DGND, CLK, EP | GND |
 | SCLK / DIN / DOUT/DRDY / CS | GPIO5 / GPIO4 / GPIO1 / GPIO3, CS pulled up to 3V3 (100 kΩ) |
+| DRDY | GPIO0 |
 | AIN0 / AIN1 | load cell S+ / S− through 100 Ω each, 100 nF differential |
-| AIN2, DRDY | not connected |
+| AIN2 | not connected |
 
 The bridge is powered only while the low-side switch is closed: firmware must set
 `PSW = 1` (config register 2), which closes the switch on START/SYNC and opens it on
@@ -41,6 +42,8 @@ v2.0.0 names these the other way round: its `SW+` pad is the power-path input an
   3.0–5.5 V only as the supply limit and full function at 4.5–5.5 V, so at 3.3 V
   blue and green may be dim; the WS2812B-5050 (3.7–5.3 V) was also run at 3.3 V.
 - Added: 4.7 kΩ I2C pull-ups (MAX17048), 100 nF at the RGB LED, a battery GND pad (B−).
+- RGB LED fed through a 0 Ω link (R24) that joins 3V3 at C13, so the LED current
+  doesn't flow along the ADS1220 AVDD trace.
 - USB-C shield tied directly to GND (R17 0 Ω removed).
 
 ## Verify
