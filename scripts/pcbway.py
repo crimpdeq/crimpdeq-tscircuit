@@ -44,7 +44,9 @@ NOTES["GRM1555C1E103JE01D"] = "C0G/NP0 only (no X7R/X5R): 10nF 0402, >= 16V"
 NOTES["B5819WS"] = "Any B5819WS in SOD-323; cathode per silkscreen band"
 
 source = {e["source_component_id"]: e for e in cj if e["type"] == "source_component"}
-placed = [e for e in cj if e["type"] == "pcb_component" and not e.get("do_not_place")]
+# Stitching vias also get a pcb_component, without a source component
+placed = [e for e in cj if e["type"] == "pcb_component" and not e.get("do_not_place")
+          and e["source_component_id"] in source]
 
 groups = defaultdict(list)
 for pc in placed:

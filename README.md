@@ -7,7 +7,8 @@ with the HX711 replaced by a TI ADS1220 24-bit ADC.
 - Top: ESP32-C3-MINI-1 (antenna at the board edge, copper keepout on all layers),
   USB-C (TYPE-C-31-M-12, flush with the opposite edge), USB ESD, both LEDs
 - Bottom: charger, power path, 3V3 buck, MAX17048, ADS1220 and passives
-- Stackup: signals on all layers, GND pour on every layer
+- Stackup: signals on all layers, GND pour on every layer, GND stitching vias at the
+  module EPAD, the ADS1220 bypass capacitors and AVSS, the buck and the board edges
 - Design rules (PCBWay): 5/5 mil track/space, vias 0.3 mm drill / 0.5 mm pad,
   0.3 mm copper-to-edge
 
@@ -42,8 +43,10 @@ v2.0.0 names these the other way round: its `SW+` pad is the power-path input an
   3.0–5.5 V only as the supply limit and full function at 4.5–5.5 V, so at 3.3 V
   blue and green may be dim; the WS2812B-5050 (3.7–5.3 V) was also run at 3.3 V.
 - Added: 4.7 kΩ I2C pull-ups (MAX17048), 100 nF at the RGB LED, a battery GND pad (B−).
-- RGB LED fed through a 0 Ω link (R24) that joins 3V3 at C13, so the LED current
-  doesn't flow along the ADS1220 AVDD trace.
+- ADS1220 100 nF bypass capacitors (C11, C13) 0.5 mm from AVDD/DVDD, fed from the
+  C10 bulk capacitor, with GND vias at their GND pads.
+- RGB LED fed through a 0 Ω link (R24) that joins 3V3 at C10, so the LED current
+  doesn't flow along the ADS1220 supply path.
 - USB-C shield tied directly to GND (R17 0 Ω removed).
 
 ## Verify
@@ -55,9 +58,10 @@ npm run fab      # PCBWay package in dist/fab/
 ```
 
 `scripts/drc.ts` runs every PCB check individually because the built-in DRC
-aborts when its copper-pour check crashes. `scripts/netlist.py` and
-`scripts/routing.py` compare connectivity and routed copper against
-`scripts/netlist.expected.json` and `scripts/routing.expected.json`.
+aborts when its copper-pour check crashes, and adds minimum trace width and 3V3
+supply topology checks. `scripts/netlist.py` and `scripts/routing.py` compare
+connectivity and routed copper against `scripts/netlist.expected.json` and
+`scripts/routing.expected.json`.
 
 ## PCBWay order
 
