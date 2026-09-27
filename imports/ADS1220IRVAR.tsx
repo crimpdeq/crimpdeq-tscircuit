@@ -26,7 +26,6 @@ const pinAttributes = {
   pin5: { doNotConnect: true },
   pin10: { requiresPower: true },
   pin11: { requiresPower: true },
-  pin12: { doNotConnect: true },
   pin17: { requiresGround: true },
 } as const
 
