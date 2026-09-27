@@ -175,7 +175,7 @@ export const ESP32_C3_MINI_1_N4 = (props: ChipProps<typeof pinLabels>) => {
 <smtpad portHints={["pin51"]} pcbX="5.94995mm" pcbY="-4.949952mm" width="0.6999986mm" height="0.6999986mm" shape="rect" />
 <smtpad portHints={["pin52"]} pcbX="-5.94995mm" pcbY="-4.949952mm" width="0.6999986mm" height="0.6999986mm" shape="rect" />
 <smtpad portHints={["pin53"]} pcbX="-5.94995mm" pcbY="4.949952mm" width="0.6999986mm" height="0.6999986mm" shape="rect" />
-<smtpad portHints={["pin49"]} points={[{x: "-2.7001216mm", y: "2.099945mm"}, {x: "-2.1001228mm", y: "2.6999438mm"}, {x: "-1.2501372mm", y: "2.6999438mm"}, {x: "-1.2501372mm", y: "1.2499594mm"}, {x: "-2.7001216mm", y: "1.2499594mm"}]} shape="polygon" />
+<smtpad portHints={["pin49"]} pcbX="-1.975129mm" pcbY="1.974952mm" width="1.449984mm" height="1.449984mm" shape="rect" />
 <smtpad portHints={["pin54"]} pcbX="1.97485mm" pcbY="-1.975104mm" width="1.4500098mm" height="1.4500098mm" shape="rect" />
 <smtpad portHints={["pin55"]} pcbX="0mm" pcbY="-1.975104mm" width="1.4500098mm" height="1.4500098mm" shape="rect" />
 <smtpad portHints={["pin56"]} pcbX="-1.975104mm" pcbY="-1.975104mm" width="1.4500098mm" height="1.4500098mm" shape="rect" />

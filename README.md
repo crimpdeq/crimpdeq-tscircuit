@@ -7,7 +7,8 @@ with the HX711 replaced by a TI ADS1220 24-bit ADC.
 - Top: ESP32-C3-MINI-1 (antenna at the board edge, copper keepout on all layers),
   USB-C (TYPE-C-31-M-12, flush with the opposite edge), USB ESD, both LEDs
 - Bottom: charger, power path, 3V3 buck, MAX17048, ADS1220 and passives
-- Stackup: signals on all layers, GND pour on every layer
+- Stackup: signals on all layers, GND pour on every layer, GND stitching vias at the
+  module EPAD, the ADS1220 bypass capacitors and AVSS, the buck and the board edges
 - Design rules (PCBWay): 5/5 mil track/space, vias 0.3 mm drill / 0.5 mm pad,
   0.3 mm copper-to-edge
 
@@ -21,7 +22,7 @@ with the HX711 replaced by a TI ADS1220 24-bit ADC.
 | AVSS, DGND, CLK, EP | GND |
 | SCLK / DIN / DOUT/DRDY / CS | GPIO5 / GPIO4 / GPIO1 / GPIO3, CS pulled up to 3V3 (100 kΩ) |
 | DRDY | GPIO0 |
-| AIN0 / AIN1 | load cell S+ / S− through 100 Ω each, 100 nF differential |
+| AIN0 / AIN1 | load cell S+ / S− through 1 kΩ each, 10 nF C0G differential (~8 kHz) |
 | AIN2 | not connected |
 
 The bridge is powered only while the low-side switch is closed: firmware must set
@@ -42,22 +43,31 @@ v2.0.0 names these the other way round: its `SW+` pad is the power-path input an
   3.0–5.5 V only as the supply limit and full function at 4.5–5.5 V, so at 3.3 V
   blue and green may be dim; the WS2812B-5050 (3.7–5.3 V) was also run at 3.3 V.
 - Added: 4.7 kΩ I2C pull-ups (MAX17048), 100 nF at the RGB LED, a battery GND pad (B−).
-- RGB LED fed through a 0 Ω link (R24) that joins 3V3 at C13, so the LED current
-  doesn't flow along the ADS1220 AVDD trace.
+- ADS1220 100 nF bypass capacitors (C11, C13) 0.5 mm from AVDD/DVDD, fed from the
+  C10 bulk capacitor, with GND vias at their GND pads.
+- RGB LED fed through a 0 Ω link (R24) that joins 3V3 at C10, so the LED current
+  doesn't flow along the ADS1220 supply path.
 - USB-C shield tied directly to GND (R17 0 Ω removed).
 
 ## Verify
 
 ```sh
 bun install --frozen-lockfile   # exact tool versions from bun.lock
-npm run verify   # netlist + routing baselines, placement, schematic, build, per-check DRC, gerber shorts
+npm run verify   # netlist + routing baselines, placement, schematic, build, per-check DRC,
+                 # gerber shorts, fab paste and copper
 npm run fab      # PCBWay package in dist/fab/
 ```
 
 `scripts/drc.ts` runs every PCB check individually because the built-in DRC
-aborts when its copper-pour check crashes. `scripts/netlist.py` and
-`scripts/routing.py` compare connectivity and routed copper against
-`scripts/netlist.expected.json` and `scripts/routing.expected.json`.
+aborts when its copper-pour check crashes, and adds minimum trace width and 3V3
+supply topology checks. `scripts/netlist.py` and `scripts/routing.py` compare
+connectivity and routed copper against `scripts/netlist.expected.json` and
+`scripts/routing.expected.json`.
+
+`scripts/fab-json.ts` fixes the paste and GND pours in the copy of `circuit.json`
+that `npm run fab` exports, and checks the result: tscircuit leaves pill and
+polygon pads without paste, shrinks all paste to 49 % of the pad area, pastes
+every plated hole on both sides, and leaves floating pour copper.
 
 ## PCBWay order
 
@@ -70,6 +80,16 @@ from below; the corner triangle marks pin 1, or the cathode of diodes and LEDs).
 Quote settings: 4 layers, 17 × 31.5 mm, 1.6 mm FR-4, min track/spacing 5/5 mil,
 min hole 0.3 mm, assembly on both sides. The centroid rotations come from
 tscircuit; ask PCBWay to confirm orientation against the assembly drawings.
+
+Assembly notes for PCBWay:
+
+- Reflow the bottom side first; the top carries the heavy parts (U1, J2).
+- J2's four shell legs are pin-in-paste in the top reflow: top paste over the leg
+  pads, none on the bottom.
+- The J3/J4 wire pads have no paste; the load cell and battery wires are
+  hand-soldered afterwards.
+- Paste is 1:1 on normal pads and 50–60 % on the thermal pads (U1 EPAD, U3 and
+  U5 exposed pads).
 
 ## Routing
 

@@ -36,7 +36,6 @@ const J2_Y = BOTTOM + 5.39 - USB_OVERHANG
 const PARTS = {
   R0: { mpn: "0402WGF0000TCE", lcsc: "C17168" },
   R10: { mpn: "0402WGF100JTCE", lcsc: "C25077" },
-  R100: { mpn: "0402WGF1000TCE", lcsc: "C25076" },
   R1k: { mpn: "0402WGF1001TCE", lcsc: "C11702" },
   R4k7: { mpn: "0402WGF4701TCE", lcsc: "C25900" },
   R5k1: { mpn: "0402WGF5101TCE", lcsc: "C25905" },
@@ -45,6 +44,7 @@ const PARTS = {
   R100k: { mpn: "0402WGF1003TCE", lcsc: "C25741" },
   C22p: { mpn: "0402CG220J500NT", lcsc: "C1555" },
   C10n: { mpn: "CL05B103KB5NNNC", lcsc: "C15195" },
+  C10n_C0G: { mpn: "GRM1555C1E103JE01D", lcsc: "C3855387" },
   C100n: { mpn: "CL05B104KO5NNNC", lcsc: "C1525" },
   C1u: { mpn: "CL05A105KA5NQNC", lcsc: "C52923" },
   C4u7_0603: { mpn: "CL10A475KO8NNNC", lcsc: "C19666" },
@@ -57,6 +57,18 @@ const part = ({ mpn, lcsc }: { mpn: string; lcsc: string }) => ({
   manufacturerPartNumber: mpn,
   supplierPartNumbers: { lcsc: [lcsc] },
 })
+
+// GND stitching vias [x, y]: U1 EPAD grid (thermal and RF return; at the corners
+// where four squares meet, since the router fails on vias inside pads), the
+// ADS1220 bypass and AVSS returns, the buck, and the board edges
+const GND_VIAS: [number, number][] = [
+  [-0.9875, 3.4125], [0.9875, 3.4125], [-0.9875, 5.3875], [0.9875, 5.3875],
+  [-3.53, 1.7], [-1.95, 0.95], [-3.2, -5.5],
+  [3, 7.65], [5, 4], [5, 8],
+  [-7.5, 7.5], [-7.5, 2.5], [-7.5, 1], [-7.5, -1.5], [-7, -5], [-5.5, -8.5], [-5.5, -11.5], [-5.5, -14.5],
+  [7.5, 3], [7.5, 0.5], [7, -1], [7.5, -3], [7.5, -6.5], [5.5, -9.5], [5.5, -13], [7.5, -14.5],
+  [-2, -11.5], [2, -11.5], [0, -7.5], [-0.5, -3.2], [-4, -8], [4.5, -8],
+]
 
 const esp32GndPins = [
   "GND1", "GND2", "GND3", "GND4", "GND5", "GND6", "GND7", "GND8", "GND9",
@@ -151,7 +163,7 @@ export default ({ pours = true }: { pours?: boolean }) => (
       footprint="0402"
       {...part(PARTS.R5k1)}
       layer="bottom"
-      pcbX={1.5}
+      pcbX={1.45}
       pcbY={-8.15}
       schSectionName="usb"
       schX={-20}
@@ -254,12 +266,12 @@ export default ({ pours = true }: { pours?: boolean }) => (
       schRotation={-90}
       connections={{ pin1: "net.VBAT", pin2: "net.GND" }}
     />
-    {/* 10k PROG -> 100 mA charge current */}
+    {/* 4.7k PROG -> 213 mA charge current (1000 V / R_PROG) */}
     <resistor
       name="R2"
-      resistance="10k"
+      resistance="4.7k"
       footprint="0402"
-      {...part(PARTS.R10k)}
+      {...part(PARTS.R4k7)}
       layer="bottom"
       pcbX={1.2}
       pcbY={-13.05}
@@ -408,7 +420,7 @@ export default ({ pours = true }: { pours?: boolean }) => (
       footprint="0402"
       {...part(PARTS.R10k)}
       layer="bottom"
-      pcbX={0.35}
+      pcbX={0.4}
       pcbY={8.75}
       pcbRotation={270}
       schSectionName="buck"
@@ -647,15 +659,16 @@ export default ({ pours = true }: { pours?: boolean }) => (
       schY={-6}
       connections={{ DIN: "net.LED_DIN", VDD: "net.V3_3_LED", GND: "net.GND" }}
     />
-    {/* LED supply link: its 3V3 pad is nearer C13 than U3, so the router joins
-        it there and the LED PWM current stays off the U3 AVDD trace */}
+    {/* LED supply link: its 3V3 pad is nearer C10 than any U3 supply pad, so the
+        router joins it at the bulk capacitor and the LED PWM current stays off
+        the U3 AVDD/DVDD path */}
     <resistor
       name="R24"
       resistance="0"
       footprint="0402"
       {...part(PARTS.R0)}
-      pcbX={0.5}
-      pcbY={-2.2}
+      pcbX={0.8}
+      pcbY={-2.15}
       pcbRotation={180}
       schSectionName="led"
       schX={-9}
@@ -779,15 +792,17 @@ export default ({ pours = true }: { pours?: boolean }) => (
         N_CS: "net.ADC_CS",
       }}
     />
+    {/* AVDD/DVDD bypass 0.5 mm from pins 10/11 (datasheet 9.4.1): the 3V3 feed
+        from the C10 bulk capacitor passes their pads before reaching the pins */}
     <capacitor
       name="C11"
       capacitance="100nF"
       footprint="0402"
       {...part(PARTS.C100n)}
       layer="bottom"
-      pcbX={-2.9}
-      pcbY={0.45}
-      pcbRotation={180}
+      pcbX={-3.53}
+      pcbY={0.48}
+      pcbRotation={270}
       schSectionName="decoupling"
       schX={-12.5}
       schY={-19.1}
@@ -800,8 +815,9 @@ export default ({ pours = true }: { pours?: boolean }) => (
       footprint="0402"
       {...part(PARTS.C100n)}
       layer="bottom"
-      pcbX={-1.0}
-      pcbY={0.45}
+      pcbX={-2.57}
+      pcbY={0.48}
+      pcbRotation={270}
       schSectionName="decoupling"
       schX={-11.25}
       schY={-19.1}
@@ -814,7 +830,7 @@ export default ({ pours = true }: { pours?: boolean }) => (
       footprint="0603"
       {...part(PARTS.C10u_0603)}
       layer="bottom"
-      pcbX={-0.85}
+      pcbX={-0.6}
       pcbY={1.7}
       schSectionName="decoupling"
       schX={-13.75}
@@ -844,7 +860,7 @@ export default ({ pours = true }: { pours?: boolean }) => (
       footprint="0402"
       {...part(PARTS.C1u)}
       layer="bottom"
-      pcbX={-6.32}
+      pcbX={-6.37}
       pcbY={-2.88}
       pcbRotation={90}
       schSectionName="adc"
@@ -868,12 +884,13 @@ export default ({ pours = true }: { pours?: boolean }) => (
       schRotation={-90}
       connections={{ pin1: "net.ADC_CS", pin2: "net.V3_3" }}
     />
-    {/* Input RC filter: 100R + 100R + 100nF differential */}
+    {/* Input RC filter: 1k + 1k + 10nF C0G differential (~8 kHz); C0G because
+        X7R is piezoelectric and TI asks for C0G here */}
     <resistor
       name="R7"
-      resistance="100"
+      resistance="1k"
       footprint="0402"
-      {...part(PARTS.R100)}
+      {...part(PARTS.R1k)}
       layer="bottom"
       pcbX={-4.95}
       pcbY={1.1}
@@ -885,9 +902,9 @@ export default ({ pours = true }: { pours?: boolean }) => (
     />
     <resistor
       name="R8"
-      resistance="100"
+      resistance="1k"
       footprint="0402"
-      {...part(PARTS.R100)}
+      {...part(PARTS.R1k)}
       layer="bottom"
       pcbX={-7.0}
       pcbY={0.1}
@@ -899,9 +916,9 @@ export default ({ pours = true }: { pours?: boolean }) => (
     />
     <capacitor
       name="C12"
-      capacitance="100nF"
+      capacitance="10nF"
       footprint="0402"
-      {...part(PARTS.C100n)}
+      {...part(PARTS.C10n_C0G)}
       layer="bottom"
       pcbX={-5.0}
       pcbY={0.1}
@@ -1001,6 +1018,10 @@ export default ({ pours = true }: { pours?: boolean }) => (
       allowTraces
       allowPlacements
     />
+    {/* GND stitching: the router only adds vias where a trace changes layer */}
+    {GND_VIAS.map(([x, y]) => (
+      <via key={`${x},${y}`} pcbX={x} pcbY={y} connectsTo="net.GND" />
+    ))}
     {pours && (
       <>
         <copperpour connectsTo="net.GND" layer="inner1" clearance="0.2mm" boardEdgeMargin="0.35mm" />

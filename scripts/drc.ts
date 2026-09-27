@@ -101,6 +101,95 @@ let failures = 0
   }
   for (const e of errors.slice(0, 8)) log(`       - ${e.message}`)
 }
+// Custom checks: report in the same format as the @tscircuit/checks ones
+type Issue = { type: string; message: string; center?: Point }
+const report = (check: string, issues: Issue[]) => {
+  failures += issues.length
+  errors.push(...issues.map((e) => ({ check, ...e })))
+  log(`${issues.length ? "FAIL" : "ok  "} ${check}: ${issues.length} errors`)
+  for (const e of issues.slice(0, 8)) log(`       - ${e.message}`)
+}
+
+// The router sometimes narrows a trace below the board minimum (e.g. stubs into
+// polygon pads); the built-in checks do not look at widths
+const MIN_TRACE_WIDTH = 0.127
+{
+  const issues: Issue[] = []
+  for (const t of circuitJson.filter((e: any) => e.type === "pcb_trace"))
+    for (const p of t.route)
+      if (p.route_type === "wire" && p.width < MIN_TRACE_WIDTH - 1e-6) {
+        issues.push({
+          type: "trace_too_narrow",
+          message: `${t.pcb_trace_id} is ${p.width} mm wide at (${p.x.toFixed(2)}, ${p.y.toFixed(2)}) on ${p.layer}`,
+          center: { x: p.x, y: p.y },
+        })
+        break
+      }
+  report("minTraceWidth", issues)
+}
+
+// 3V3 supply topology. The router joins each pad to its nearest same-net pad, so
+// placement decides where currents flow; every re-route can change it. The RGB
+// LED link (R24) must reach the buck without passing the ADS1220 supply pins or
+// their bypass capacitors (LED PWM current off AVDD/DVDD). The buck -> ESP32
+// 3V3 path is reported: the router narrows V3_3 below its 0.25 mm width.
+{
+  const sourceNames = new Map(
+    circuitJson.filter((e: any) => e.type === "source_component").map((e: any) => [e.source_component_id, e.name]),
+  )
+  const sourcePorts = new Map(circuitJson.filter((e: any) => e.type === "source_port").map((e: any) => [e.source_port_id, e]))
+  const pcbPorts = new Map(circuitJson.filter((e: any) => e.type === "pcb_port").map((e: any) => [e.pcb_port_id, e]))
+  const portName = (id: string) => {
+    const sp: any = sourcePorts.get((pcbPorts.get(id) as any)?.source_port_id)
+    return sp ? `${sourceNames.get(sp.source_component_id)}.${sp.name}` : id
+  }
+  type Edge = { to: string; narrow: number; wide: number; vias: number }
+  const graph = new Map<string, Edge[]>()
+  for (const t of circuitJson.filter((e: any) => e.type === "pcb_trace")) {
+    const ends = t.route.flatMap((p: any) => [p.start_pcb_port_id, p.end_pcb_port_id]).filter(Boolean).map(portName)
+    if (ends.length !== 2) continue
+    let [narrow, wide] = [0, 0]
+    for (let k = 1; k < t.route.length; k++) {
+      const [a, b] = [t.route[k - 1], t.route[k]]
+      if (a.route_type !== "wire" || b.route_type !== "wire") continue
+      const length = Math.hypot(b.x - a.x, b.y - a.y)
+      if (Math.min(a.width, b.width) < 0.25 - 1e-6) narrow += length
+      else wide += length
+    }
+    const vias = t.route.filter((p: any) => p.route_type === "via").length
+    for (const [a, b] of [ends, [...ends].reverse()])
+      graph.set(a, [...(graph.get(a) ?? []), { to: b, narrow, wide, vias }])
+  }
+  const path = (from: string, to: string) => {
+    const prev = new Map<string, [string, Edge] | null>([[from, null]])
+    const queue = [from]
+    for (let q = 0; q < queue.length && !prev.has(to); q++)
+      for (const e of graph.get(queue[q]) ?? [])
+        if (!prev.has(e.to)) {
+          prev.set(e.to, [queue[q], e])
+          queue.push(e.to)
+        }
+    const nodes = [to]
+    const edges: Edge[] = []
+    for (let step = prev.get(to); step; step = prev.get(step[0])) {
+      nodes.unshift(step[0])
+      edges.push(step[1])
+    }
+    return prev.has(to) ? { nodes, edges } : undefined
+  }
+  const issues: Issue[] = []
+  const led = path("L1.pin2", "R24.pin1")
+  const adcSupply = ["U3.AVDD", "U3.DVDD", "C11.pin1", "C13.pin1"]
+  if (!led || led.nodes.some((n) => adcSupply.includes(n)))
+    issues.push({ type: "led_supply_via_adc", message: `LED supply path: ${led?.nodes.join(" -> ") ?? "none"}` })
+  report("supplyTopology", issues)
+  const mcu = path("L1.pin2", "U1.3V3")
+  const sum = (key: "narrow" | "wide" | "vias") => mcu?.edges.reduce((s, e) => s + e[key], 0) ?? NaN
+  log(
+    `       buck -> U1 3V3: ${sum("narrow").toFixed(1)} mm below 0.25 mm, ${sum("wide").toFixed(1)} mm at 0.25 mm, ${sum("vias")} vias`,
+  )
+}
+
 for (const name of pcbChecks) {
   const fn = (checks as any)[name]
   if (typeof fn !== "function") {

@@ -6,7 +6,7 @@
 # its remaining DRC errors and shorts. Stops at the first variant with a clean
 # DRC, no shorts and a clean placement check.
 #
-# Usage: python3 scripts/search.py [--adopt] [--jobs 8] [--rounds 4] [--timeout 300]
+# Usage: python3 scripts/search.py [--adopt] [--jobs 8] [--rounds 4] [--timeout 300] [--seed 0]
 #   --adopt  copy the clean variant into index.circuit.tsx
 import argparse, hashlib, json, math, os, random, re, shutil, subprocess, sys, tempfile, threading, time
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -23,6 +23,7 @@ ap.add_argument("--jobs", type=int, default=8)
 ap.add_argument("--rounds", type=int, default=4)
 ap.add_argument("--timeout", type=int, default=300, help="seconds per build before it is killed")
 ap.add_argument("--keep", action="store_true", help="keep the scratch directory")
+ap.add_argument("--seed", type=int, default=0, help="seed for the random nudges (retry a stuck search)")
 ap.add_argument("--base", default=os.path.join(ROOT, "index.circuit.tsx"), help="design to start from")
 args = ap.parse_args()
 
@@ -91,7 +92,7 @@ def evaluate(name, source):
     cj = json.load(open(cj_path))
     names = {e["source_component_id"]: e["name"] for e in cj if e["type"] == "source_component"}
     parts = {names[e["source_component_id"]]: (e["center"]["x"], e["center"]["y"])
-             for e in cj if e["type"] == "pcb_component"}
+             for e in cj if e["type"] == "pcb_component" and e["source_component_id"] in names}
     errors = len(drc["errors"]) + 10 * len(crashed)
     return {**result, "score": errors + 3 * len(shorts), "points": points, "parts": parts,
             "summary": f"{len(drc['errors'])} DRC errors, {len(shorts)} shorts" + (f", crashed {crashed}" if crashed else "")}
@@ -136,7 +137,7 @@ def candidates(best, tried, count, rng):
 
 
 def main():
-    rng = random.Random(0)
+    rng = random.Random(args.seed)
     base_src = open(args.base).read()
     tried = {hashlib.md5(base_src.encode()).hexdigest()}
     best = {"name": "base", "source": base_src, "score": math.inf, "points": [], "parts": {}}
