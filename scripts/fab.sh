@@ -19,6 +19,14 @@ tsci export "$tmp/fab/circuit.json" -f gerbers -o "$tmp/tscircuit.zip" 2>&1 |
   grep -v "jlcpcb pick-and-place rotation\|^Exported to" || true
 unzip -q "$tmp/tscircuit.zip" -d "$tmp/gerbers"
 rm -f "$tmp/gerbers/bom.csv" "$tmp/gerbers/pick_and_place.csv"
+# Some CAM tools and viewers ignore %LR (load rotation); fab-json.ts unrotates the pads
+if grep -l '%LR' "$tmp/gerbers"/*.gbr; then
+  echo "fab: the Gerbers above use %LR load rotation" >&2
+  exit 1
+fi
+# Name the drill files by plating, as KiCad does
+mv "$tmp/gerbers/drill-L1-L4.drl" "$tmp/gerbers/drill-PTH.drl"
+mv "$tmp/gerbers/drill_npth.drl" "$tmp/gerbers/drill-NPTH.drl"
 (cd "$tmp/gerbers" && zip -q "$tmp/pcbway_gerbers.zip" ./*)
 mv "$tmp/pcbway_gerbers.zip" "$out/pcbway_gerbers.zip"
 

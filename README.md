@@ -67,7 +67,10 @@ connectivity and routed copper against `scripts/netlist.expected.json` and
 `scripts/fab-json.ts` fixes the paste and GND pours in the copy of `circuit.json`
 that `npm run fab` exports, and checks the result: tscircuit leaves pill and
 polygon pads without paste, shrinks all paste to 49 % of the pad area, pastes
-every plated hole on both sides, and leaves floating pour copper.
+every plated hole on both sides, and leaves floating pour copper. It also
+unrotates the pads at multiples of 90° (size swapped): tscircuit flashes rounded
+rotated pads with a `%LR` load rotation that some CAM tools ignore, and `npm run fab`
+fails if any `%LR` is left.
 
 ## Online viewer
 
