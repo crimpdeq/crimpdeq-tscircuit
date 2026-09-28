@@ -1,0 +1,35 @@
+# Build the viewer site on pull requests; build and deploy it to
+# https://tscircuit.crimpdeq.com (Cloudflare Pages) on pushes to main
+name: Site
+
+on:
+  push:
+    branches: [main, feat/static-site]
+    paths-ignore: ["**.md", ".agents/**"]
+  pull_request:
+    paths-ignore: ["**.md", ".agents/**"]
+  workflow_dispatch:
+
+concurrency:
+  group: site-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  site:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+      - run: bun install --frozen-lockfile
+      - name: Build
+        if: github.ref != 'refs/heads/main'
+        run: npm run site
+      - name: Build and deploy
+        if: github.ref == 'refs/heads/main'
+        run: npm run site:deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: 2fc7f8105c4c2a621b320949cae125ae

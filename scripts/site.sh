@@ -16,6 +16,8 @@ status=0
 wait "$pid" || status=$?
 { kill "$watchdog" && wait "$watchdog"; } 2>/dev/null || true
 [ "$status" -eq 0 ] || { echo "site: tsci build failed ($status)" >&2; exit "$status"; }
+# Publish only the accepted routing (scripts/routing.expected.json)
+python3 scripts/routing.py
 
 rm -rf "$out"
 mkdir -p "$out/index"
