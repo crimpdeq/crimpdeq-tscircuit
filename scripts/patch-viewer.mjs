@@ -3,12 +3,15 @@
 //   3D model hover "U3"      -> "U3 - ADS1220"
 // `tsci dev` serves the project's tscircuit/dist/browser.min.js, so this edits
 // that file in place. Runs on postinstall; safe to run repeatedly.
+// `scripts/site.sh` passes the static site's standalone.min.js as the argument.
 import { readFileSync, writeFileSync } from "node:fs"
 import { fileURLToPath } from "node:url"
 
-const file = fileURLToPath(
-  new URL("../node_modules/tscircuit/dist/browser.min.js", import.meta.url),
-)
+const file =
+  process.argv[2] ??
+  fileURLToPath(
+    new URL("../node_modules/tscircuit/dist/browser.min.js", import.meta.url),
+  )
 
 const patches = [
   {

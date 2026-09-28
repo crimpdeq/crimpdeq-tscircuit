@@ -8,6 +8,8 @@
     "build": "tsci build index.circuit.tsx",
     "verify": "python3 scripts/netlist.py && tsci check placement index.circuit.tsx && tsci check schematic-placement index.circuit.tsx && tsci build index.circuit.tsx && python3 scripts/routing.py && bun scripts/drc.ts && tsci check shorts dist/index/circuit.json && bun scripts/fab-json.ts",
     "fab": "scripts/fab.sh",
+    "site": "scripts/site.sh",
+    "site:deploy": "scripts/site.sh --deploy",
     "search": "python3 scripts/search.py",
     "render": "bun scripts/render.ts",
     "typecheck": "tsc --noEmit"
