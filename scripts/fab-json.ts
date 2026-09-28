@@ -10,6 +10,10 @@
 //   floating, including lobes joined only by hairline necks that do not survive
 //   etching. Pour copper not reachable from GND through copper at least the
 //   minimum trace width wide is cleared (as extra pour holes).
+// - Pad rotation: rounded rotated_rect pads are flashed with a %LR load
+//   rotation, which some CAM tools and viewers ignore (U6's SOT-23-5 pads would
+//   then overlap). Pads at multiples of 90 degrees become unrotated pads with
+//   their size swapped; `npm run fab` fails if any %LR is left.
 //
 // Usage: bun scripts/fab-json.ts [in.json] [out.json]
 //   without out.json it applies the fixes in memory and only checks the result
@@ -44,6 +48,17 @@ const names = new Map<string, string>()
 }
 const padName = (e: any) => `${names.get(e.pcb_component_id) ?? "?"}.${e.port_hints?.[0] ?? e.pcb_smtpad_id}`
 const failures: string[] = []
+
+// ---------------------------------------------------------------- pad rotation
+let unrotated = 0
+for (const e of cj) {
+  if (e.type !== "pcb_smtpad" || e.shape !== "rotated_rect" || !e.ccw_rotation) continue
+  const rot = ((e.ccw_rotation % 360) + 360) % 360
+  if (rot % 90) continue
+  if (rot % 180) [e.width, e.height] = [e.height, e.width]
+  e.ccw_rotation = 0
+  unrotated++
+}
 
 // ---------------------------------------------------------------- GND pours
 const RES = 0.02 // mm per raster cell
@@ -337,7 +352,8 @@ let pasteCount = 0
 
 if (output) writeFileSync(output, JSON.stringify(cj))
 console.log(
-  `paste: ${pasteCount} apertures; cleared ${clearedArea.toFixed(2)} mm2 of floating GND pour on ${clearedLayers} layers`,
+  `paste: ${pasteCount} apertures; cleared ${clearedArea.toFixed(2)} mm2 of floating GND pour on ${clearedLayers} layers; ` +
+    `unrotated ${unrotated} pads`,
 )
 for (const f of failures.slice(0, 20)) console.log(`FAIL ${f}`)
 if (failures.length > 20) console.log(`... ${failures.length - 20} more`)

@@ -67,7 +67,10 @@ connectivity and routed copper against `scripts/netlist.expected.json` and
 `scripts/fab-json.ts` fixes the paste and GND pours in the copy of `circuit.json`
 that `npm run fab` exports, and checks the result: tscircuit leaves pill and
 polygon pads without paste, shrinks all paste to 49 % of the pad area, pastes
-every plated hole on both sides, and leaves floating pour copper.
+every plated hole on both sides, and leaves floating pour copper. It also
+unrotates the pads at multiples of 90° (size swapped): tscircuit flashes rounded
+rotated pads with a `%LR` load rotation that some CAM tools ignore, and `npm run fab`
+fails if any `%LR` is left.
 
 ## Online viewer
 
@@ -90,6 +93,11 @@ npm run site:deploy   # build and upload it (needs `npx wrangler login`)
 substitution notes), `pcbway_centroid.csv` (mm, origin at the board center) and
 top/bottom assembly drawings from `scripts/assembly.ts` (bottom mirrored, as seen
 from below; the corner triangle marks pin 1, or the cathode of diodes and LEDs).
+
+`.github/workflows/release.yml` builds the same package on every published GitHub
+release, after `npm run verify` passes, and attaches it to the release as
+`crimpdeq-tscircuit-<tag>-*` with a `SHA256SUMS` file. Pull requests that change
+the fab scripts and manual runs only build it, as a workflow artifact.
 
 Quote settings: 4 layers, 17 × 31.5 mm, 1.6 mm FR-4, min track/spacing 5/5 mil,
 min hole 0.3 mm, assembly on both sides. The centroid rotations come from
