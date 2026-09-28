@@ -73,6 +73,10 @@ every plated hole on both sides, and leaves floating pour copper.
 
 <https://tscircuit.crimpdeq.com> serves the PCB, schematic and 3D viewer as a
 static site on Cloudflare Pages (project `crimpdeq-tscircuit`).
+`.github/workflows/site.yml` rebuilds and deploys it on every push to `main`
+(repository secret `CLOUDFLARE_API_TOKEN`, Cloudflare Pages: Edit). Both the
+workflow and `npm run site` refuse to publish a routing that differs from
+`scripts/routing.expected.json`.
 
 ```sh
 npm run site          # static site in dist/site/

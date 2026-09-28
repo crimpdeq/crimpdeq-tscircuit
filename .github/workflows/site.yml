@@ -1,12 +1,12 @@
-# Build the viewer site on pull requests; build and deploy it to
-# https://tscircuit.crimpdeq.com (Cloudflare Pages) on pushes to main
+# Build the viewer site and deploy it to https://tscircuit.crimpdeq.com
+# (Cloudflare Pages) on pushes to main; manual runs on other branches only build.
+# macOS arm64: the autorouter output differs on Linux x64, and scripts/site.sh
+# refuses to publish a routing that differs from scripts/routing.expected.json.
 name: Site
 
 on:
   push:
-    branches: [main, feat/static-site]
-    paths-ignore: ["**.md", ".agents/**"]
-  pull_request:
+    branches: [main]
     paths-ignore: ["**.md", ".agents/**"]
   workflow_dispatch:
 
@@ -16,7 +16,7 @@ concurrency:
 
 jobs:
   site:
-    runs-on: macos-latest
+    runs-on: macos-26
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
