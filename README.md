@@ -138,3 +138,5 @@ at the first variant with a clean DRC, no shorts and a clean placement check.
 This repository is source-available for personal and educational use only.
 
 Commercial manufacture, sale of PCBs, sale of 3D-printed cases, kits, or assembled Crimpdeq devices requires prior written permission.
+
+The vendored tscircuit skill in `.agents/skills/tscircuit/` keeps its own MIT license.
