@@ -132,3 +132,9 @@ python3 scripts/routing.py --update && npm run verify
 `scripts/search.py` works in a scratch directory outside the project, builds 8
 variants at a time, nudges the passives nearest the remaining errors, and stops
 at the first variant with a clean DRC, no shorts and a clean placement check.
+
+## License
+
+This repository is source-available for personal and educational use only.
+
+Commercial manufacture, sale of PCBs, sale of 3D-printed cases, kits, or assembled Crimpdeq devices requires prior written permission.
