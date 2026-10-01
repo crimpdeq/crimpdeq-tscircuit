@@ -3,7 +3,8 @@
 # Builds variants of index.circuit.tsx, each with one passive nudged by 0.05 mm,
 # in a scratch directory outside the project (so `tsci dev` never sees them).
 # Each round starts from the best variant so far and nudges the passives nearest
-# its remaining DRC errors and shorts. Stops at the first variant with a clean
+# its remaining DRC errors and shorts; once every single nudge of the best has
+# been tried, it nudges random pairs. Stops at the first variant with a clean
 # DRC, no shorts and a clean placement check.
 #
 # Usage: python3 scripts/search.py [--adopt] [--jobs 8] [--rounds 4] [--timeout 300] [--seed 0]
@@ -116,8 +117,13 @@ def parts_from_source(source):
     return parts
 
 
+def label(n, dx, dy):
+    return f"{n}{'+' if dx + dy > 0 else '-'}{'x' if dx else 'y'}"
+
+
 def candidates(best, tried, count, rng):
-    """Nudges of passives nearest the best variant's errors, then random ones."""
+    """Nudges of passives nearest the best variant's errors, then random ones,
+    then random pairs once every single nudge of the best has been tried."""
     parts = best.get("parts") or parts_from_source(best["source"])
     parts = {n: p for n, p in parts.items() if MOVABLE.match(n)}
     ranked = []
@@ -133,9 +139,20 @@ def candidates(best, tried, count, rng):
         h = hashlib.md5(src.encode()).hexdigest()
         if h not in tried:
             tried.add(h)
-            out.append((f"{n}{'+' if dx + dy > 0 else '-'}{'x' if dx else 'y'}", src))
+            out.append((label(n, dx, dy), src))
         if len(out) == count:
             break
+    for _ in range(1000 * count):
+        if len(out) == count:
+            break
+        (n1, dx1, dy1), (n2, dx2, dy2) = rng.sample(pool, 2)
+        if n1 == n2:
+            continue
+        src = nudge(nudge(best["source"], n1, dx1, dy1), n2, dx2, dy2)
+        h = hashlib.md5(src.encode()).hexdigest()
+        if h not in tried:
+            tried.add(h)
+            out.append((f"{label(n1, dx1, dy1)}_{label(n2, dx2, dy2)}", src))
     return out
 
 
