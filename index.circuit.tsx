@@ -61,15 +61,18 @@ const part = ({ mpn, lcsc }: { mpn: string; lcsc: string }) => ({
 })
 
 // <trace pcbPath> points are in the frame of the first port's component;
-// convert board coordinates given that component's center and rotation
+// convert board coordinates given that component's center and rotation.
+// A point with a layer pair is a via between those layers.
+type Layer = "top" | "inner1" | "inner2" | "bottom"
 const boardPath = (
   [cx, cy, rotation]: [number, number, number],
-  points: [number, number][],
+  points: ([number, number] | [number, number, Layer, Layer])[],
 ) => {
   const a = (-rotation * Math.PI) / 180
-  return points.map(([x, y]) => ({
+  return points.map(([x, y, fromLayer, toLayer]) => ({
     x: (x - cx) * Math.cos(a) - (y - cy) * Math.sin(a),
     y: (x - cx) * Math.sin(a) + (y - cy) * Math.cos(a),
+    ...(fromLayer && toLayer ? { via: true, fromLayer, toLayer } : {}),
   }))
 }
 
@@ -576,6 +579,19 @@ export default ({ pours = true }: { pours?: boolean }) => (
     <trace from=".C16 > .pin2" to=".R15 > .pin2" thickness="0.15mm" pcbPath={[]} />
     <trace from=".R16 > .pin1" to=".C16 > .pin2" thickness="0.15mm" pcbPath={[]} />
     <trace from=".R14 > .pin2" to=".U6 > .EN" thickness="0.15mm" pcbPath={[]} />
+    {/* EN pull-up supply: the bottom layer around U6.IN is closed by the GND
+        strap, U6 and L1, so VSYS reaches R14 on inner1 */}
+    <trace
+      from=".U6 > .IN"
+      to=".R14 > .pin1"
+      thickness="0.15mm"
+      pcbPath={boardPath([3.95, 7.65, 180], [
+        [4.85, 5.75], [4.85, 5.75, "bottom", "inner1"], [4.85, 5.75],
+        [1.6, 5.75], [0.05, 7.3],
+        [0.05, 8.0], [0.05, 8.0, "inner1", "bottom"], [0.05, 8.0],
+        [0.05, 8.9],
+      ])}
+    />
 
     {/* ---------------- ESP32-C3 ---------------- */}
     <ESP32_C3_MINI_1_N4

@@ -58,6 +58,8 @@ v2.0.0 names these the other way round: its `SW+` pad is the power-path input an
   trunk (v2.0.0 used up to 0.61 mm; the router narrows V3_3 to 0.127 mm).
 - ESD diode and receptacle GND pads are tied by hand to the J2 GND pins, the shell legs
   and (D7) a via.
+- The buck EN pull-up (R14) gets VSYS from U6.IN over inner1: on the bottom side the GND
+  strap, U6 and L1 close U6.IN off from the feedback divider column.
 
 ## Verify
 
