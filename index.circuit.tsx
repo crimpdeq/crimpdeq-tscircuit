@@ -11,6 +11,7 @@ import { SY8088IAAC } from "./imports/SY8088IAAC"
 import { TYPE_C_31_M_12 } from "./imports/TYPE_C_31_M_12"
 import { XL_2121RGBC_2812B } from "./imports/XL_2121RGBC_2812B"
 import { WirePads } from "./lib/WirePads"
+import { GND_PLANE_LAYER, GND_PLANE_REGIONS } from "./lib/gndPlane"
 
 // Board outline: 17 x 31.5 mm, origin at the board center, antenna at +Y.
 const W = 17
@@ -58,13 +59,26 @@ const part = ({ mpn, lcsc }: { mpn: string; lcsc: string }) => ({
   supplierPartNumbers: { lcsc: [lcsc] },
 })
 
+// <trace pcbPath> points are in the frame of the first port's component;
+// convert board coordinates given that component's center and rotation
+const boardPath = (
+  [cx, cy, rotation]: [number, number, number],
+  points: [number, number][],
+) => {
+  const a = (-rotation * Math.PI) / 180
+  return points.map(([x, y]) => ({
+    x: (x - cx) * Math.cos(a) - (y - cy) * Math.sin(a),
+    y: (x - cx) * Math.sin(a) + (y - cy) * Math.cos(a),
+  }))
+}
+
 // GND stitching vias [x, y]: U1 EPAD grid (thermal and RF return; at the corners
 // where four squares meet, since the router fails on vias inside pads), the
 // ADS1220 bypass and AVSS returns, the buck, and the board edges
 const GND_VIAS: [number, number][] = [
   [-0.9875, 3.4125], [0.9875, 3.4125], [-0.9875, 5.3875], [0.9875, 5.3875],
   [-3.53, 1.7], [-1.95, 0.95], [-3.2, -5.5],
-  [3, 7.65], [5, 4], [5, 8],
+  [3.95, 6.4], [3.95, 7.65],
   [-7.5, 7.5], [-7.5, 2.5], [-7.5, 1], [-7.5, -1.5], [-7, -5], [-5.5, -8.5], [-5.5, -11.5], [-5.5, -14.5],
   [7.5, 3], [7.5, 0.5], [7, -1], [7.5, -3], [7.5, -6.5], [5.5, -9.5], [5.5, -13], [7.5, -14.5],
   [-2, -11.5], [2, -11.5], [0, -7.5], [-0.5, -3.2], [-4, -8], [4.5, -8],
@@ -201,6 +215,25 @@ export default ({ pours = true }: { pours?: boolean }) => (
       schX={-23.5}
       schY={7.5}
       connections={{ pin1: "net.USB_DP", pin2: "net.GND" }}
+    />
+    {/* ESD and receptacle GND returns by hand: D9/D10 to the J2 GND pins and
+        the shell legs, D7 through a via to R18. Left to the router, these top
+        pads reach bottom GND through a shell-leg hole, and the router fails
+        (SameNetViaMergerSolver: could not find transition layers). */}
+    <trace from=".D9 > .pin2" to=".J2 > .A1B12" thickness="0.25mm" pcbPath={[]} />
+    <trace from=".D10 > .pin2" to=".J2 > .B1A12" thickness="0.25mm" pcbPath={[]} />
+    <trace from=".J2 > .A1B12" to=".J2 > .EH3" thickness="0.25mm" pcbPath={[]} />
+    <trace from=".J2 > .B1A12" to=".J2 > .EH2" thickness="0.25mm" pcbPath={[]} />
+    <trace
+      from=".D7 > .pin2"
+      to=".R18 > .pin2"
+      thickness="0.25mm"
+      // via at (0.75, -7.3); D7 is unrotated at (0, -6.603)
+      pcbPath={[
+        { x: 0.75, y: -0.697 },
+        { x: 0.75, y: -0.697, via: true, fromLayer: "top", toLayer: "bottom" },
+        { x: 0.75, y: -0.697 },
+      ]}
     />
     {/* Reverse/backfeed blocking between the USB connector and VBUS */}
     <B5819WS
@@ -385,8 +418,8 @@ export default ({ pours = true }: { pours?: boolean }) => (
       footprint="0805"
       {...part(PARTS.C10u_0805)}
       layer="bottom"
-      pcbX={3.0}
-      pcbY={4.55}
+      pcbX={4.863}
+      pcbY={4.68}
       schSectionName="pwrpath"
       schX={9}
       schY={9}
@@ -400,7 +433,7 @@ export default ({ pours = true }: { pours?: boolean }) => (
       displayName="U6 - SY8088"
       schHeight={0.6}
       layer="bottom"
-      pcbX={3.0}
+      pcbX={3.95}
       pcbY={7.65}
       pcbRotation={180}
       schSectionName="buck"
@@ -420,9 +453,9 @@ export default ({ pours = true }: { pours?: boolean }) => (
       footprint="0402"
       {...part(PARTS.R10k)}
       layer="bottom"
-      pcbX={0.4}
-      pcbY={8.75}
-      pcbRotation={270}
+      pcbX={1.35}
+      pcbY={9.22}
+      pcbRotation={180}
       schSectionName="buck"
       schX={14.5}
       schY={11.5}
@@ -432,8 +465,8 @@ export default ({ pours = true }: { pours?: boolean }) => (
     <FTC252012S2R2MBCA
       name="L1"
       layer="bottom"
-      pcbX={6.5}
-      pcbY={8.2}
+      pcbX={6.97}
+      pcbY={7.805}
       pcbRotation={90}
       schSectionName="buck"
       schX={22}
@@ -448,9 +481,9 @@ export default ({ pours = true }: { pours?: boolean }) => (
       footprint="0402"
       {...part(PARTS.R100k)}
       layer="bottom"
-      pcbX={0.3}
-      pcbY={6.75}
-      pcbRotation={90}
+      pcbX={1.35}
+      pcbY={6.34}
+      pcbRotation={180}
       schSectionName="buck"
       schX={25}
       schY={9}
@@ -463,9 +496,9 @@ export default ({ pours = true }: { pours?: boolean }) => (
       footprint="0402"
       {...part(PARTS.C22p)}
       layer="bottom"
-      pcbX={-0.8}
-      pcbY={6.75}
-      pcbRotation={90}
+      pcbX={1.35}
+      pcbY={7.3}
+      pcbRotation={180}
       schSectionName="buck"
       schX={26.5}
       schY={9}
@@ -478,9 +511,9 @@ export default ({ pours = true }: { pours?: boolean }) => (
       footprint="0402"
       {...part(PARTS.R22k1)}
       layer="bottom"
-      pcbX={-0.8}
-      pcbY={8.75}
-      pcbRotation={90}
+      pcbX={1.35}
+      pcbY={8.26}
+      pcbRotation={0}
       schSectionName="buck"
       schX={25}
       schY={6.5}
@@ -494,15 +527,53 @@ export default ({ pours = true }: { pours?: boolean }) => (
       footprint="0805"
       {...part(PARTS.C10u_0805)}
       layer="bottom"
-      pcbX={6.5}
-      pcbY={4.85}
-      pcbRotation={90}
+      pcbX={2.23}
+      pcbY={3.85}
+      pcbRotation={270}
       schSectionName="decoupling"
       schX={-15.0}
       schY={-17.5}
       schRotation={-90}
       connections={{ pin1: "net.V3_3", pin2: "net.GND" }}
     />
+    {/* Buck power copper, routed by hand (SY8088 layout notes). Input loop: C15
+        sits at IN, and its GND pad lines up with the gap between FB and IN, so a
+        0.8 mm bottom-layer strap reaches the GND pin under the package, with
+        two GND vias on it. C17's GND pad joins C15's, and LX reaches L1 in 0.7 mm. */}
+    <trace from=".C15 > .pin2" to=".U6 > .GND" thickness="0.8mm" pcbPath={[]} />
+    <trace from=".C17 > .pin2" to=".C15 > .pin2" thickness="0.8mm" pcbPath={[]} />
+    <trace from=".C15 > .pin1" to=".U6 > .IN" thickness="0.5mm" pcbPath={[]} />
+    <trace from=".U6 > .LX" to=".L1 > .pin1" thickness="0.6mm" pcbPath={[]} />
+    {/* L1 -> C17 around C15, and the 3V3 trunk from C17 along the ESP32
+        decoupling (D3, C4, C2, C1, C9 at U1 3V3) */}
+    <trace
+      from=".L1 > .pin2"
+      to=".C17 > .pin1"
+      thickness="0.4mm"
+      pcbPath={boardPath([6.97, 7.805, 90], [[6.8, 6.5], [6.8, 2.75], [3.2, 2.75]])}
+    />
+    <trace
+      from=".C17 > .pin1"
+      to=".D3 > .pin1"
+      thickness="0.4mm"
+      pcbPath={boardPath([2.23, 3.85, 270], [[1.8, 2.6], [-2.0, 2.6], [-2.0, 8.675]])}
+    />
+    <trace from=".D3 > .pin1" to=".C4 > .pin1" thickness="0.4mm" pcbPath={[]} />
+    <trace from=".C4 > .pin1" to=".C2 > .pin1" thickness="0.4mm" pcbPath={[]} />
+    <trace from=".C2 > .pin1" to=".C1 > .pin1" thickness="0.4mm" pcbPath={[]} />
+    <trace from=".C1 > .pin1" to=".C9 > .pin1" thickness="0.4mm" pcbPath={[]} />
+    {/* Feedback: divider at the FB pin, sensing 3V3 at C17 */}
+    <trace
+      from=".R15 > .pin1"
+      to=".C17 > .pin1"
+      thickness="0.15mm"
+      pcbPath={boardPath([1.35, 6.34, 180], [[0.45, 6.0], [0.45, 2.95]])}
+    />
+    <trace from=".C16 > .pin1" to=".R15 > .pin1" thickness="0.15mm" pcbPath={[]} />
+    <trace from=".R15 > .pin2" to=".U6 > .FB" thickness="0.15mm" pcbPath={[]} />
+    <trace from=".C16 > .pin2" to=".R15 > .pin2" thickness="0.15mm" pcbPath={[]} />
+    <trace from=".R16 > .pin1" to=".C16 > .pin2" thickness="0.15mm" pcbPath={[]} />
+    <trace from=".R14 > .pin2" to=".U6 > .EN" thickness="0.15mm" pcbPath={[]} />
 
     {/* ---------------- ESP32-C3 ---------------- */}
     <ESP32_C3_MINI_1_N4
@@ -736,7 +807,7 @@ export default ({ pours = true }: { pours?: boolean }) => (
       {...part(PARTS.R4k7)}
       layer="bottom"
       pcbX={3.4}
-      pcbY={1.8}
+      pcbY={1.2}
       pcbRotation={90}
       schSectionName="fuel"
       schX={8.5}
@@ -751,7 +822,7 @@ export default ({ pours = true }: { pours?: boolean }) => (
       {...part(PARTS.R4k7)}
       layer="bottom"
       pcbX={2.3}
-      pcbY={1.85}
+      pcbY={1.2}
       pcbRotation={90}
       schSectionName="fuel"
       schX={10}
@@ -1026,6 +1097,21 @@ export default ({ pours = true }: { pours?: boolean }) => (
       <>
         <copperpour connectsTo="net.GND" layer="inner1" clearance="0.2mm" boardEdgeMargin="0.35mm" />
         <copperpour connectsTo="net.GND" layer="inner2" clearance="0.2mm" boardEdgeMargin="0.35mm" />
+        {/* Solid GND under the buck and the ADC: routing on inner2 is kept out */}
+        <copperpour
+          connectsTo="net.GND"
+          layer={GND_PLANE_LAYER}
+          clearance="0.2mm"
+          outline={GND_PLANE_REGIONS.buck}
+          unbroken
+        />
+        <copperpour
+          connectsTo="net.GND"
+          layer={GND_PLANE_LAYER}
+          clearance="0.2mm"
+          outline={GND_PLANE_REGIONS.adc}
+          unbroken
+        />
         <copperpour connectsTo="net.GND" layer="top" clearance="0.2mm" boardEdgeMargin="0.35mm" />
         <copperpour connectsTo="net.GND" layer="bottom" clearance="0.2mm" boardEdgeMargin="0.35mm" />
       </>

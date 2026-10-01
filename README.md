@@ -7,8 +7,10 @@ with the HX711 replaced by a TI ADS1220 24-bit ADC.
 - Top: ESP32-C3-MINI-1 (antenna at the board edge, copper keepout on all layers),
   USB-C (TYPE-C-31-M-12, flush with the opposite edge), USB ESD, both LEDs
 - Bottom: charger, power path, 3V3 buck, MAX17048, ADS1220 and passives
-- Stackup: signals on all layers, GND pour on every layer, GND stitching vias at the
-  module EPAD, the ADS1220 bypass capacitors and AVSS, the buck and the board edges
+- Stackup: GND pour on every layer; inner2 (next to the bottom side) is a solid GND
+  plane under the buck and the ADS1220 front end (`lib/gndPlane.ts`), and signals run
+  on the other layers and the rest of inner2. GND stitching vias at the module EPAD,
+  the ADS1220 bypass capacitors and AVSS, the buck and the board edges
 - Design rules (PCBWay): 5/5 mil track/space, vias 0.3 mm drill / 0.5 mm pad,
   0.3 mm copper-to-edge
 
@@ -48,6 +50,14 @@ v2.0.0 names these the other way round: its `SW+` pad is the power-path input an
 - RGB LED fed through a 0 Ω link (R24) that joins 3V3 at C10, so the LED current
   doesn't flow along the ADS1220 supply path.
 - USB-C shield tied directly to GND (R17 0 Ω removed).
+- 3V3 buck laid out after the SY8088 layout notes, with its power copper routed by hand:
+  C15's GND pad lines up with the gap between FB and IN, so a 0.8 mm strap reaches
+  the GND pin under the package; C17's GND pad joins C15's; LX reaches L1 in 0.7 mm;
+  the feedback divider sits at the FB pin and senses 3V3 at C17.
+- 3V3 from C17 to the ESP32 decoupling (D3, C4, C2, C1, C9) is a 0.4 mm hand-routed
+  trunk (v2.0.0 used up to 0.61 mm; the router narrows V3_3 to 0.127 mm).
+- ESD diode and receptacle GND pads are tied by hand to the J2 GND pins, the shell legs
+  and (D7) a via.
 
 ## Verify
 
@@ -59,8 +69,9 @@ npm run fab      # PCBWay package in dist/fab/
 ```
 
 `scripts/drc.ts` runs every PCB check individually because the built-in DRC
-aborts when its copper-pour check crashes, and adds minimum trace width and 3V3
-supply topology checks. `scripts/netlist.py` and `scripts/routing.py` compare
+aborts when its copper-pour check crashes, and adds minimum trace width, inner2 GND
+plane and 3V3 supply topology checks (at most 3 mm of the buck -> U1 3V3 path below
+0.25 mm). `scripts/netlist.py` and `scripts/routing.py` compare
 connectivity and routed copper against `scripts/netlist.expected.json` and
 `scripts/routing.expected.json`.
 
@@ -132,6 +143,19 @@ python3 scripts/routing.py --update && npm run verify
 `scripts/search.py` works in a scratch directory outside the project, builds 8
 variants at a time, nudges the passives nearest the remaining errors, and stops
 at the first variant with a clean DRC, no shorts and a clean placement check.
+
+The router output depends on the platform: the accepted routing comes from macOS
+arm64, which CI uses, and a Linux x64 build of the same design routes differently.
+Run the search and accept routings on macOS.
+
+The buck power copper, the 3V3 trunk and the USB-area GND returns are `<trace>`
+elements with `pcbPath` (`pcbPath={[]}` for a straight line between pad centers).
+`pcbStraightLine` ends traces at the pad edge, and tscircuit then attaches the end to
+whichever pad covers that point on any layer (here U1's pads on the top side).
+Routing on only three layers (all of inner2 reserved) left the board unroutable,
+and the router fails outright when it uses a shell-leg hole of J2 as a layer change
+(`SameNetViaMergerSolver could not find transition layers`), which the hand-routed
+USB GND returns avoid.
 
 ## License
 
