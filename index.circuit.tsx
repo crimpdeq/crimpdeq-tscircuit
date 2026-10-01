@@ -85,7 +85,7 @@ const GND_VIAS: [number, number][] = [
   [3.95, 6.4], [3.95, 7.65],
   [-7.5, 7.5], [-7.5, 2.5], [-7.5, 1], [-7.5, -1.5], [-7, -5], [-5.5, -8.5], [-5.5, -11.5], [-5.5, -14.5],
   [7.5, 3], [7.5, 0.5], [7, -1], [7.5, -3], [7.5, -6.5], [5.5, -9.5], [5.5, -13], [7.5, -14.5],
-  [-2, -11.5], [2, -11.5], [0, -7.5], [-0.5, -3.2], [-4, -8], [4.5, -8],
+  [-2, -11.5], [2, -11.5], [0, -7.5], [-0.5, -4.4], [-4, -8], [4.5, -8],
 ]
 
 const esp32GndPins = [
@@ -555,7 +555,7 @@ export default ({ pours = true }: { pours?: boolean }) => (
       from=".L1 > .pin2"
       to=".C17 > .pin1"
       thickness="0.4mm"
-      pcbPath={boardPath([6.97, 7.805, 90], [[6.8, 6.5], [6.8, 2.75], [3.2, 2.75]])}
+      pcbPath={boardPath([6.97, 7.805, 90], [[6.8, 6.5], [6.8, 3.35], [3.2, 3.35]])}
     />
     <trace
       from=".C17 > .pin1"
@@ -826,7 +826,7 @@ export default ({ pours = true }: { pours?: boolean }) => (
       layer="bottom"
       pcbX={3.4}
       pcbY={1.2}
-      pcbRotation={90}
+      pcbRotation={270}
       schSectionName="fuel"
       schX={8.5}
       schY={-5.5}
@@ -839,15 +839,44 @@ export default ({ pours = true }: { pours?: boolean }) => (
       footprint="0402"
       {...part(PARTS.R4k7)}
       layer="bottom"
-      pcbX={2.3}
+      pcbX={4.45}
       pcbY={1.2}
-      pcbRotation={90}
+      pcbRotation={270}
       schSectionName="fuel"
       schX={10}
       schY={-5.5}
       schRotation={-90}
       connections={{ pin1: "net.V3_3", pin2: "net.I2C_SCL" }}
     />
+    {/* I2C by hand: U5 to its pull-up below the 3V3 trunk, then a via on that
+        trace and the top side under U1 to IO7 (SCL) and IO6 (SDA) */}
+    <trace
+      from=".U5 > .SCL"
+      to=".R21 > .pin2"
+      pcbPath={boardPath([6.3, 0.75, 0], [[6.55, 2.25], [4.45, 2.25]])}
+    />
+    <trace
+      from=".R21 > .pin2"
+      to=".U1 > .IO7"
+      pcbPath={boardPath([4.45, 1.2, 270], [
+        [4.45, 2.25], [4.45, 2.25, "bottom", "top"], [4.45, 2.25],
+        [3.8, 0.35], [2.4, 0.35],
+      ])}
+    />
+    <trace
+      from=".U5 > .SDA"
+      to=".R20 > .pin2"
+      pcbPath={boardPath([6.3, 0.75, 0], [[7.05, 2.7], [3.4, 2.7]])}
+    />
+    <trace
+      from=".R20 > .pin2"
+      to=".U1 > .IO6"
+      pcbPath={boardPath([3.4, 1.2, 270], [
+        [3.4, 2.25], [3.4, 2.25, "bottom", "top"], [3.4, 2.25],
+        [3.4, 1.3], [1.6, 0.7],
+      ])}
+    />
+    <trace from=".U5 > .QSTRT" to=".U5 > .EP" pcbPath={[]} />
 
     {/* ---------------- ADS1220 load cell ADC ---------------- */}
     <ADS1220IRVAR
@@ -1038,6 +1067,72 @@ export default ({ pours = true }: { pours?: boolean }) => (
         S_N: "net.LC_SN",
         E_N: "net.LC_EN",
       }}
+    />
+    {/* ADS1220 fan-out by hand. SPI: vias right of U3 (its top and inner
+        layers are kept out), then the top side to U1's bottom pad row: DOUT
+        along the channel between that row and the keepout, SCLK around R24,
+        DRDY over the row under the module. Front end: AIN0/AIN1 to the filter,
+        REFP0 to C14/R22, AIN3 to REFN0 around the lower-left corner. */}
+    <trace
+      from=".U3 > .DOUT"
+      to=".U1 > .IO1"
+      pcbPath={boardPath([-3.2, -2.88, 0], [
+        [-0.95, -1.6], [-0.95, -1.6, "bottom", "top"], [-0.95, -1.6],
+        [-1.3, -1.25], [-4.0, -1.25],
+      ])}
+    />
+    <trace
+      from=".U3 > .N_DRDY"
+      to=".U1 > .IO0"
+      pcbPath={boardPath([-3.2, -2.88, 0], [
+        [-1.6, -0.37], [-1.6, 0.35], [-1.6, 0.35, "bottom", "top"], [-1.6, 0.35],
+        [-4.8, 0.35],
+      ])}
+    />
+    <trace
+      from=".U3 > .DIN"
+      to=".U1 > .IO4"
+      pcbPath={boardPath([-3.2, -2.88, 0], [
+        [-0.55, -2.45], [-0.55, -2.45, "bottom", "top"], [-0.55, -2.45],
+        [-0.4, -2.3], [-0.4, -1.3],
+      ])}
+    />
+    <trace
+      from=".U3 > .SCLK"
+      to=".U1 > .IO5"
+      pcbPath={boardPath([-3.2, -2.88, 0], [
+        [0.05, -3.0], [0.05, -3.0, "bottom", "top"], [0.05, -3.0],
+        [1.9, -2.9], [1.9, -1.5], [0.8, -1.2],
+      ])}
+    />
+    <trace
+      from=".U3 > .N_CS"
+      to=".R23 > .pin1"
+      pcbPath={boardPath([-3.2, -2.88, 0], [[-1.0, -3.9], [-1.0, -5.5]])}
+    />
+    <trace
+      from=".U3 > .AIN0"
+      to=".C12 > .pin1"
+      pcbPath={boardPath([-3.2, -2.88, 0], [[-3.95, -0.6], [-4.49, -0.22]])}
+    />
+    <trace from=".C12 > .pin1" to=".R7 > .pin1" pcbPath={[]} />
+    <trace
+      from=".U3 > .AIN1"
+      to=".C12 > .pin2"
+      pcbPath={boardPath([-3.2, -2.88, 0], [[-5.51, -1.6]])}
+    />
+    <trace from=".C12 > .pin2" to=".R8 > .pin1" pcbPath={[]} />
+    <trace
+      from=".U3 > .REFP0"
+      to=".C14 > .pin1"
+      thickness="0.25mm"
+      pcbPath={boardPath([-3.2, -2.88, 0], [[-5.4, -2.63]])}
+    />
+    <trace from=".C14 > .pin1" to=".R22 > .pin2" thickness="0.25mm" pcbPath={[]} />
+    <trace
+      from=".U3 > .AIN3"
+      to=".U3 > .REFN0"
+      pcbPath={boardPath([-3.2, -2.88, 0], [[-3.95, -5.05], [-5.55, -5.05], [-5.55, -3.13]])}
     />
 
     {/* ---------------- Layout constraints ---------------- */}
