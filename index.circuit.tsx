@@ -81,7 +81,7 @@ const boardPath = (
 // ADS1220 bypass and AVSS returns, the buck, and the board edges
 const GND_VIAS: [number, number][] = [
   [-0.9875, 3.4125], [0.9875, 3.4125], [-0.9875, 5.3875], [0.9875, 5.3875],
-  [-3.53, 1.7], [-1.95, 0.95], [-3.2, -5.5],
+  [-3.53, 1.7], [-2.05, 1.4], [-3.2, -5.5],
   [3.95, 6.4], [3.95, 7.65],
   [-7.5, 7.5], [-7.5, 2.5], [-7.5, 1], [-7.5, -1.5], [-7, -5], [-5.5, -8.5], [-5.5, -11.5], [-5.5, -14.5],
   [7.5, 3], [7.5, 0.5], [7, -1], [7.5, -3], [7.5, -6.5], [5.5, -9.5], [5.5, -13], [7.5, -14.5],
@@ -877,6 +877,18 @@ export default ({ pours = true }: { pours?: boolean }) => (
       ])}
     />
     <trace from=".U5 > .QSTRT" to=".U5 > .EP" pcbPath={[]} />
+    {/* Fuel gauge alert to U1.IO10: under the pull-ups, then inner1 below U1's
+        pad row and up between IO10 and the DRDY via */}
+    <trace
+      from=".U5 > .N_ALRT"
+      to=".U1 > .IO10"
+      pcbPath={boardPath([6.3, 0.75, 0], [
+        [5.12, 1.26], [5.12, -0.9],
+        [5.0, -1.4], [5.0, -1.4, "bottom", "inner1"], [5.0, -1.4],
+        [4.6, -1.0], [-0.8, -1.0],
+        [-1.25, 0.4], [-1.25, 0.4, "inner1", "top"], [-1.25, 0.4],
+      ])}
+    />
 
     {/* ---------------- ADS1220 load cell ADC ---------------- */}
     <ADS1220IRVAR
@@ -1071,8 +1083,9 @@ export default ({ pours = true }: { pours?: boolean }) => (
     {/* ADS1220 fan-out by hand. SPI: vias right of U3 (its top and inner
         layers are kept out), then the top side to U1's bottom pad row: DOUT
         along the channel between that row and the keepout, SCLK around R24,
-        DRDY over the row under the module. Front end: AIN0/AIN1 to the filter,
-        REFP0 to C14/R22, AIN3 to REFN0 around the lower-left corner. */}
+        DRDY over the row under the module, left of FG_ALRT. Front end:
+        AIN0/AIN1 to the filter, REFP0 to C14/R22, AIN3 to REFN0 around the
+        lower-left corner. */}
     <trace
       from=".U3 > .DOUT"
       to=".U1 > .IO1"
@@ -1085,8 +1098,8 @@ export default ({ pours = true }: { pours?: boolean }) => (
       from=".U3 > .N_DRDY"
       to=".U1 > .IO0"
       pcbPath={boardPath([-3.2, -2.88, 0], [
-        [-1.6, -0.37], [-1.6, 0.35], [-1.6, 0.35, "bottom", "top"], [-1.6, 0.35],
-        [-4.8, 0.35],
+        [-1.9, -0.77], [-1.9, 0.5], [-1.9, 0.5, "bottom", "top"], [-1.9, 0.5],
+        [-4.8, 0.5],
       ])}
     />
     <trace
