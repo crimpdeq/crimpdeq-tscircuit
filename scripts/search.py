@@ -71,14 +71,17 @@ def evaluate(name, source):
     with open(os.path.join(scratch, f"{name}.circuit.tsx"), "w") as f:
         f.write(source)
     t0 = time.time()
-    code, _ = run(["tsci", "build", f"{name}.circuit.tsx", "--ignore-warnings",
-                   "--autorouter-timeout", f"{args.timeout}s"], args.timeout + 60)
+    code, out = run(["tsci", "build", f"{name}.circuit.tsx", "--ignore-warnings",
+                     "--autorouter-timeout", f"{args.timeout}s"], args.timeout + 60)
     cj_path = os.path.join(scratch, "dist", name, "circuit.json")
     result = {"name": name, "source": source, "seconds": round(time.time() - t0)}
     if stop.is_set():
         return None
     if code is None or not os.path.exists(cj_path):
         return {**result, "score": math.inf, "summary": "build failed or timed out", "points": []}
+    # An unrouted board has fewer DRC errors than a routed one: never prefer it
+    if "Autorouting was skipped" in out or re.search(r"phase \d+/\d+ error after", out):
+        return {**result, "score": math.inf, "summary": "not routed (placement error or router failure)", "points": []}
     _, drc_out = run(["bun", "scripts/drc.ts", "--json", cj_path], 120)
     try:
         drc = json.loads(drc_out.strip().splitlines()[-1])
