@@ -47,6 +47,9 @@ below override the skill where they conflict.
   `pcbStraightLine`, which attaches clipped ends to top-side U1 pads.
 - inner2 is reserved for GND under the buck and the ADC (`lib/gndPlane.ts`);
   reserving all of it left the board unroutable.
+- The board autorouter is `lib/gndPlaneRouter.ts`, the stock solver with those
+  pours detached from GND (see README). After a tscircuit upgrade, check that
+  it still matches core's solver choice and options.
 
 ## Working with the dev server
 

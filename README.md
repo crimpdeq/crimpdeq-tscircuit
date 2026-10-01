@@ -157,6 +157,13 @@ and the router fails outright when it uses a shell-leg hole of J2 as a layer cha
 (`SameNetViaMergerSolver could not find transition layers`), which the hand-routed
 USB GND returns avoid.
 
+The board routes with `lib/gndPlaneRouter.ts` (`autorouter={{ algorithmFn }}`): the
+stock solver with the `unbroken` inner2 GND pours detached from GND in its input, so
+they only keep other nets out. Attached, the router escapes nearby GND pads into the
+pour with vias whose clearance it checks only between the pad and pour layers; built
+as through vias, they landed on pads on the other side (L1, C16, C17, C11, C12). On
+`main`, which has no `unbroken` pours, the adapter reproduces the stock routing exactly.
+
 ## License
 
 This repository is source-available for personal and educational use only.

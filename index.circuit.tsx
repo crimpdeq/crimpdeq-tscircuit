@@ -12,6 +12,7 @@ import { TYPE_C_31_M_12 } from "./imports/TYPE_C_31_M_12"
 import { XL_2121RGBC_2812B } from "./imports/XL_2121RGBC_2812B"
 import { WirePads } from "./lib/WirePads"
 import { GND_PLANE_LAYER, GND_PLANE_REGIONS } from "./lib/gndPlane"
+import { gndPlaneAutorouter } from "./lib/gndPlaneRouter"
 
 // Board outline: 17 x 31.5 mm, origin at the board center, antenna at +Y.
 const W = 17
@@ -96,6 +97,7 @@ export default ({ pours = true }: { pours?: boolean }) => (
     width={W}
     height={L}
     layers={4}
+    autorouter={{ algorithmFn: gndPlaneAutorouter }}
     thickness="1.6mm"
     doubleSidedAssembly
     borderRadius={1}
