@@ -10,10 +10,14 @@ BASELINE = "scripts/routing.expected.json"
 args = [a for a in sys.argv[1:] if not a.startswith("--")]
 cj = json.load(open(args[0] if args else "dist/index/circuit.json"))
 
-traces = sorted(
-    (e["pcb_trace_id"], [(round(p["x"], 4), round(p["y"], 4), p.get("layer")) for p in e["route"]])
-    for e in cj if e["type"] == "pcb_trace"
-)
+def point(p):
+    # through_pad: a layer change through a plated hole or via, given as start/end
+    if p.get("route_type") == "through_pad":
+        return (round(p["start"]["x"], 4), round(p["start"]["y"], 4), p["start_layer"], p["end_layer"])
+    return (round(p["x"], 4), round(p["y"], 4), p.get("layer"))
+
+
+traces = sorted((e["pcb_trace_id"], [point(p) for p in e["route"]]) for e in cj if e["type"] == "pcb_trace")
 length = Counter()
 for e in cj:
     if e["type"] != "pcb_trace":
