@@ -60,6 +60,10 @@ v2.0.0 names these the other way round: its `SW+` pad is the power-path input an
   and (D7) a via.
 - The buck EN pull-up (R14) gets VSYS from U6.IN over inner1: on the bottom side the GND
   strap, U6 and L1 close U6.IN off from the feedback divider column.
+- Hand-routed signals where the router failed most: U5's I2C through its pull-ups to
+  U1, the fuel gauge alert to U1.IO10 (inner1), the ADS1220 SPI and DRDY (vias right of
+  U3, then the top side under U1's pad row, DOUT on inner1), CS to its pull-up, and the
+  front end (AIN0/AIN1 through the input filter, REFP0 to C14/R22, AIN3 to REFN0).
 
 ## Verify
 
@@ -160,11 +164,15 @@ and the router fails outright when it uses a shell-leg hole of J2 as a layer cha
 USB GND returns avoid.
 
 The board routes with `lib/gndPlaneRouter.ts` (`autorouter={{ algorithmFn }}`): the
-stock solver with the `unbroken` inner2 GND pours detached from GND in its input, so
-they only keep other nets out. Attached, the router escapes nearby GND pads into the
-pour with vias whose clearance it checks only between the pad and pour layers; built
-as through vias, they landed on pads on the other side (L1, C16, C17, C11, C12). On
-`main`, which has no `unbroken` pours, the adapter reproduces the stock routing exactly.
+stock solver with two changes to its input. GND is not routed: the GND pours on all
+four layers and the stitching vias join the GND pads, and
+`checkEachPcbPortConnectedToPcbTraces` fails if any GND pad is left on its own copper
+island (a pad boxed in by hand-routed traces needs a via or a trace of its own, as
+C14's does). Routed, GND took half of the router's traces and most of its errors. The
+`unbroken` inner2 GND pours are detached from GND, so they only keep other nets out.
+Attached, the router escapes nearby GND pads into the pour with vias whose clearance it
+checks only between the pad and pour layers; built as through vias, they landed on pads
+on the other side (L1, C16, C17, C11, C12).
 
 ## License
 

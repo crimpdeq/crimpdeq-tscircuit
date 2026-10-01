@@ -1082,7 +1082,7 @@ export default ({ pours = true }: { pours?: boolean }) => (
     />
     {/* ADS1220 fan-out by hand. SPI: vias right of U3 (its top and inner
         layers are kept out), then the top side to U1's bottom pad row: DOUT
-        along the channel between that row and the keepout, SCLK around R24,
+        on inner1 above the keepout, SCLK around R24,
         DRDY over the row under the module, left of FG_ALRT. Front end:
         AIN0/AIN1 to the filter, REFP0 to C14/R22, AIN3 to REFN0 around the
         lower-left corner. */}
@@ -1090,8 +1090,9 @@ export default ({ pours = true }: { pours?: boolean }) => (
       from=".U3 > .DOUT"
       to=".U1 > .IO1"
       pcbPath={boardPath([-3.2, -2.88, 0], [
-        [-0.95, -1.6], [-0.95, -1.6, "bottom", "top"], [-0.95, -1.6],
-        [-1.3, -1.25], [-4.0, -1.25],
+        [-0.95, -1.6], [-0.95, -1.6, "bottom", "inner1"], [-0.95, -1.6],
+        [-1.25, -1.3], [-4.45, -1.3],
+        [-4.45, -1.25], [-4.45, -1.25, "inner1", "top"], [-4.45, -1.25],
       ])}
     />
     <trace
@@ -1142,6 +1143,14 @@ export default ({ pours = true }: { pours?: boolean }) => (
       pcbPath={boardPath([-3.2, -2.88, 0], [[-5.4, -2.63]])}
     />
     <trace from=".C14 > .pin1" to=".R22 > .pin2" thickness="0.25mm" pcbPath={[]} />
+    {/* C14's GND pad is boxed in by LC_EP: a via below it, to D4's GND pad */}
+    <trace
+      from=".C14 > .pin2"
+      to=".D4 > .GND"
+      pcbPath={boardPath([-6.37, -2.88, 90], [
+        [-6.37, -4.1], [-6.37, -4.1, "bottom", "top"], [-6.37, -4.1],
+      ])}
+    />
     <trace
       from=".U3 > .AIN3"
       to=".U3 > .REFN0"
