@@ -147,6 +147,25 @@ const MIN_TRACE_WIDTH = 0.127
         hit = !hit
     return hit
   }
+  // closest points of segments pq and uv (distance 0 if they cross)
+  const closest = (p: Point, q: Point, u: Point, v: Point) => {
+    const onSeg = (a: Point, b: Point, c: Point) => {
+      const [dx, dy] = [b.x - a.x, b.y - a.y]
+      const L = dx * dx + dy * dy
+      const t = L ? Math.max(0, Math.min(1, ((c.x - a.x) * dx + (c.y - a.y) * dy) / L)) : 0
+      return { x: a.x + t * dx, y: a.y + t * dy }
+    }
+    const cross = (a: Point, b: Point, c: Point) => (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x)
+    if (cross(p, q, u) * cross(p, q, v) < 0 && cross(u, v, p) * cross(u, v, q) < 0) {
+      const t = cross(u, v, p) / (cross(u, v, p) - cross(u, v, q))
+      const x = { x: p.x + t * (q.x - p.x), y: p.y + t * (q.y - p.y) }
+      return { d: 0, at: x }
+    }
+    const pairs = [[onSeg(p, q, u), u], [onSeg(p, q, v), v], [p, onSeg(u, v, p)], [q, onSeg(u, v, q)]]
+    return pairs
+      .map(([a, b]) => ({ d: Math.hypot(a.x - b.x, a.y - b.y), at: a }))
+      .reduce((m, c) => (c.d < m.d ? c : m))
+  }
   const issues: Issue[] = []
   for (const t of circuitJson.filter((e: any) => e.type === "pcb_trace")) {
     const net = traceNet.get(t.source_trace_id)
@@ -154,14 +173,18 @@ const MIN_TRACE_WIDTH = 0.127
     search: for (let k = 1; k < t.route.length; k++) {
       const [a, b] = [t.route[k - 1], t.route[k]]
       if (a.route_type !== "wire" || b.route_type !== "wire" || a.layer !== GND_PLANE_LAYER) continue
-      for (let f = 0; f <= 1; f += 0.1) {
-        const p = { x: a.x + (b.x - a.x) * f, y: a.y + (b.y - a.y) * f }
-        const region = Object.keys(GND_PLANE_REGIONS).find((r) => inside(p, GND_PLANE_REGIONS[r]))
-        if (region) {
+      // copper overlaps the region: an end inside, or the edge within half a width
+      for (const [region, poly] of Object.entries(GND_PLANE_REGIONS)) {
+        let hit: Point | undefined = inside(a, poly) ? a : inside(b, poly) ? b : undefined
+        for (let i = 0, j = poly.length - 1; !hit && i < poly.length; j = i++) {
+          const c = closest(a, b, poly[j], poly[i])
+          if (c.d < a.width / 2) hit = c.at
+        }
+        if (hit) {
           issues.push({
             type: "trace_in_gnd_plane",
-            message: `${t.pcb_trace_id} (${net ?? "?"}) runs on ${GND_PLANE_LAYER} through the ${region} GND plane at (${p.x.toFixed(2)}, ${p.y.toFixed(2)})`,
-            center: p,
+            message: `${t.pcb_trace_id} (${net ?? "?"}) runs on ${GND_PLANE_LAYER} through the ${region} GND plane at (${hit.x.toFixed(2)}, ${hit.y.toFixed(2)})`,
+            center: { x: hit.x, y: hit.y },
           })
           break search
         }
