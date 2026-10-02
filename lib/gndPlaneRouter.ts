@@ -40,6 +40,18 @@ export const gndPlaneAutorouter = async (simpleRouteJson: any) => {
           : o,
     ),
   }
+  // GND_ROUTER_SKIP=1: no autorouting (scripts/handroute.sh builds the board
+  // this way before generating lib/handRoutes.ts)
+  if (process.env.GND_ROUTER_SKIP) {
+    return {
+      solver: {},
+      on(event: string, handler: Handler) {
+        if (event === "complete") setTimeout(() => handler({ traces: [] }), 0)
+      },
+      start() {},
+      stop() {},
+    }
+  }
   const solver: any = new SOLVERS.AutoroutingPipelineSolver9_PreloadedTraceGraph(input, {})
   const handlers: Record<string, Handler[]> = { complete: [], error: [], progress: [] }
   const emit = (event: any) => handlers[event.type]?.forEach((h) => h(event))
