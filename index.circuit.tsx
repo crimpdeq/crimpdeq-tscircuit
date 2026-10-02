@@ -1100,7 +1100,7 @@ export default ({ pours = true }: { pours?: boolean }) => (
       to=".U1 > .IO0"
       pcbPath={boardPath([-3.2, -2.88, 0], [
         [-1.9, -0.77], [-1.9, 0.5], [-1.9, 0.5, "bottom", "top"], [-1.9, 0.5],
-        [-4.8, 0.5],
+        [-2.2, 0.9], [-4.8, 0.9],
       ])}
     />
     <trace
@@ -1130,6 +1130,28 @@ export default ({ pours = true }: { pours?: boolean }) => (
       pcbPath={boardPath([-3.2, -2.88, 0], [[-3.95, -0.6], [-4.49, -0.22]])}
     />
     <trace from=".C12 > .pin1" to=".R7 > .pin1" pcbPath={[".R7 > .pin1"]} />
+    {/* AVDD/DVDD: to their bypass capacitors, which are joined, and from C13
+        through a via in its 3V3 pad and inner1 to the 3V3 trunk at (-2, 2.6).
+        AIN0, DRDY and the GND pads of C11/C13 close this corner on the bottom. */}
+    <trace from=".U3 > .AVDD" to=".C11 > .pin1" thickness="0.25mm" pcbPath={[".C11 > .pin1"]} />
+    <trace
+      from=".U3 > .DVDD"
+      to=".C13 > .pin1"
+      thickness="0.25mm"
+      pcbPath={[...boardPath([-3.2, -2.88, 0], [[-2.95, -0.55]]), ".C13 > .pin1"]}
+    />
+    <trace from=".C11 > .pin1" to=".C13 > .pin1" thickness="0.25mm" pcbPath={[".C13 > .pin1"]} />
+    <trace
+      from=".C13 > .pin1"
+      to=".C17 > .pin1"
+      thickness="0.25mm"
+      pcbPath={boardPath([-2.57, 0.48, 270], [
+        [-2.57, 0.3], [-2.57, 0.3, "bottom", "inner1"], [-2.57, 0.3],
+        [-3.0, 1.0], [-3.0, 2.25],
+        [-3.3, 2.6], [-3.3, 2.6, "inner1", "bottom"], [-3.3, 2.6],
+        [-2.0, 2.6], [1.8, 2.6],
+      ])}
+    />
     <trace
       from=".U3 > .AIN1"
       to=".C12 > .pin2"

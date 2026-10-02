@@ -11,17 +11,33 @@ import { SOLVERS } from "tscircuit"
 //   there. Attached, the router escaped nearby GND pads into them with vias
 //   whose clearance it checked only between the pad and pour layers; drilled
 //   through all four layers, those vias landed on pads on the other side.
+// Core also turns the vias of hand-routed traces into obstacles on the layers
+// they join only (bottom..inner1, inner1..top); they block all four here.
 type Handler = (event: any) => void
 
 export const gndPlaneAutorouter = async (simpleRouteJson: any) => {
   const planeNets = new Set(
     simpleRouteJson.obstacles.filter((o: any) => o.isCopperPour).flatMap((o: any) => o.connectedTo),
   )
+  const { layerCount, minViaPadDiameter } = simpleRouteJson
+  const allLayers = Array.from({ length: layerCount }, (_, i) =>
+    i === 0 ? "top" : i === layerCount - 1 ? "bottom" : `inner${i}`,
+  )
+  const isPartialVia = (o: any) =>
+    o.type === "rect" &&
+    o.layers.length > 1 &&
+    o.layers.length < layerCount &&
+    Math.abs(o.width - o.height) < 1e-6 &&
+    Math.abs(o.width - minViaPadDiameter) < 1e-6
   const input = {
     ...simpleRouteJson,
     connections: simpleRouteJson.connections.filter((c: any) => !planeNets.has(c.name)),
     obstacles: simpleRouteJson.obstacles.map((o: any) =>
-      o.isCopperPour ? { ...o, connectedTo: [] } : o,
+      o.isCopperPour
+        ? { ...o, connectedTo: [] }
+        : isPartialVia(o)
+          ? { ...o, layers: allLayers }
+          : o,
     ),
   }
   const solver: any = new SOLVERS.AutoroutingPipelineSolver9_PreloadedTraceGraph(input, {})
