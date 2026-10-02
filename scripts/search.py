@@ -3,7 +3,8 @@
 # Builds variants of index.circuit.tsx, each with one passive nudged by 0.05 mm,
 # in a scratch directory outside the project (so `tsci dev` never sees them).
 # Each round starts from the best variant so far and nudges the passives nearest
-# its remaining DRC errors and shorts. Stops at the first variant with a clean
+# its remaining DRC errors and shorts; once every single nudge of the best has
+# been tried, it nudges random pairs. Stops at the first variant with a clean
 # DRC, no shorts and a clean placement check.
 #
 # Usage: python3 scripts/search.py [--adopt] [--jobs 8] [--rounds 4] [--timeout 300] [--seed 0]
@@ -71,14 +72,17 @@ def evaluate(name, source):
     with open(os.path.join(scratch, f"{name}.circuit.tsx"), "w") as f:
         f.write(source)
     t0 = time.time()
-    code, _ = run(["tsci", "build", f"{name}.circuit.tsx", "--ignore-warnings",
-                   "--autorouter-timeout", f"{args.timeout}s"], args.timeout + 60)
+    code, out = run(["tsci", "build", f"{name}.circuit.tsx", "--ignore-warnings",
+                     "--autorouter-timeout", f"{args.timeout}s"], args.timeout + 60)
     cj_path = os.path.join(scratch, "dist", name, "circuit.json")
     result = {"name": name, "source": source, "seconds": round(time.time() - t0)}
     if stop.is_set():
         return None
     if code is None or not os.path.exists(cj_path):
         return {**result, "score": math.inf, "summary": "build failed or timed out", "points": []}
+    # An unrouted board has fewer DRC errors than a routed one: never prefer it
+    if "Autorouting was skipped" in out or re.search(r"phase \d+/\d+ error after", out):
+        return {**result, "score": math.inf, "summary": "not routed (placement error or router failure)", "points": []}
     _, drc_out = run(["bun", "scripts/drc.ts", "--json", cj_path], 120)
     try:
         drc = json.loads(drc_out.strip().splitlines()[-1])
@@ -113,8 +117,13 @@ def parts_from_source(source):
     return parts
 
 
+def label(n, dx, dy):
+    return f"{n}{'+' if dx + dy > 0 else '-'}{'x' if dx else 'y'}"
+
+
 def candidates(best, tried, count, rng):
-    """Nudges of passives nearest the best variant's errors, then random ones."""
+    """Nudges of passives nearest the best variant's errors, then random ones,
+    then random pairs once every single nudge of the best has been tried."""
     parts = best.get("parts") or parts_from_source(best["source"])
     parts = {n: p for n, p in parts.items() if MOVABLE.match(n)}
     ranked = []
@@ -130,9 +139,20 @@ def candidates(best, tried, count, rng):
         h = hashlib.md5(src.encode()).hexdigest()
         if h not in tried:
             tried.add(h)
-            out.append((f"{n}{'+' if dx + dy > 0 else '-'}{'x' if dx else 'y'}", src))
+            out.append((label(n, dx, dy), src))
         if len(out) == count:
             break
+    for _ in range(1000 * count):
+        if len(out) == count:
+            break
+        (n1, dx1, dy1), (n2, dx2, dy2) = rng.sample(pool, 2)
+        if n1 == n2:
+            continue
+        src = nudge(nudge(best["source"], n1, dx1, dy1), n2, dx2, dy2)
+        h = hashlib.md5(src.encode()).hexdigest()
+        if h not in tried:
+            tried.add(h)
+            out.append((f"{label(n1, dx1, dy1)}_{label(n2, dx2, dy2)}", src))
     return out
 
 

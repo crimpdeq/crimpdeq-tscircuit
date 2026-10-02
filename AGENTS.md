@@ -32,15 +32,34 @@ below override the skill where they conflict.
 
 ## Layout and routing
 
-- Any change to PCB placement, footprints or routing rules re-routes the whole
-  board, and the router often leaves shorts at this density. Re-roll with
-  `npm run search -- --adopt`, then `npm run verify` and
-  `python3 scripts/routing.py --update`.
+- All copper is fixed (README, Routing): hand-written traces in
+  `index.circuit.tsx` and generated ones in `lib/handRoutes.ts`. After a change to
+  placement, footprints or hand-written traces, run `scripts/handroute.sh`, then
+  `npm run verify` and `python3 scripts/routing.py --update`. Do not edit
+  `lib/handRoutes.ts` by hand.
 - Schematic-only edits (`schX`, `displayName`, sections) and 3D model offsets
   do not change routing; confirm that the routed traces are unchanged.
 - Design rules target PCBWay 4-layer: 5/5 mil, 0.3/0.5 mm vias, 0.3 mm copper
   to edge, 1.6 mm board. 6/6 mil with 0.6 mm vias did not route at this size.
 - `USB_OVERHANG` is limited to ~1.2 mm by the USB-C front shell-leg slots.
+- The autorouter routes nothing now. Its output differs between macOS arm64 and
+  Linux x64, and `npm run search` re-rolls it; both matter only if nets are left
+  to it again (then accept routings on macOS).
+- Hand-routed traces: use a non-empty `pcbPath` (`pcbPath={[".X > .pin"]}`, the
+  `to` port, for a straight line), not `pcbStraightLine`, which attaches clipped
+  ends to top-side U1 pads. Core fixes only traces with a non-empty `pcbPath`; the
+  router treated `pcbPath={[]}` traces as soft and routed across them.
+- A fixed trace to a power-to-ground capacitor longer than 1 mm makes core skip
+  autorouting and fail the build: set `maxDecouplingTraceLength` on the capacitor.
+- inner2 is reserved for GND under the buck and the ADC (`lib/gndPlane.ts`);
+  reserving all of it left the board unroutable.
+- The board autorouter is `lib/gndPlaneRouter.ts`, the stock solver with GND
+  left to the pours and those pours detached from GND (see README);
+  `GND_ROUTER_SKIP=1` turns it off. After a tscircuit upgrade, check that it still
+  matches core's solver choice and options.
+- GND pads connect through the pours: after hand-routing, check that none is
+  boxed in (`checkEachPcbPortConnectedToPcbTraces` lists every GND pad when one
+  is isolated).
 
 ## Working with the dev server
 

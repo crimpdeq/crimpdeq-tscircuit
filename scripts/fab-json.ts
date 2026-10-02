@@ -86,8 +86,11 @@ const anchors: Record<string, Box[]> = Object.fromEntries(LAYERS.map((l) => [l, 
     } else if (e.type === "pcb_plated_hole" && isGnd(e)) {
       for (const l of e.layers) anchors[l].push([e.x - 0.1, e.y - 0.1, e.x + 0.1, e.y + 0.1])
     } else if (e.type === "pcb_trace" && onGndTrace(e)) {
-      for (const p of e.route)
-        for (const l of p.route_type === "wire" ? [p.layer] : LAYERS) anchors[l].push([p.x, p.y, p.x, p.y])
+      for (const p of e.route) {
+        // through_pad: a layer change through a plated hole or via, at p.start
+        const { x, y } = p.route_type === "through_pad" ? p.start : p
+        for (const l of p.route_type === "wire" ? [p.layer] : LAYERS) anchors[l].push([x, y, x, y])
+      }
     } else if (e.type === "pcb_via" && (e.source_net_id === gnd || onGndTrace(e))) {
       // source_net_id: the <via connectsTo="net.GND"> stitching vias
       for (const l of e.layers ?? LAYERS) anchors[l].push([e.x, e.y, e.x, e.y])

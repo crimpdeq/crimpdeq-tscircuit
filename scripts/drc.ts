@@ -4,6 +4,7 @@
 //   --json prints {errors: [{check, type, message, center}], crashed: [check]}
 import { readFileSync } from "node:fs"
 import * as checks from "@tscircuit/checks"
+import { GND_PLANE_LAYER, GND_PLANE_REGIONS } from "../lib/gndPlane"
 
 const json = process.argv.includes("--json")
 const file = process.argv.slice(2).find((a) => !a.startsWith("--")) ?? "dist/index/circuit.json"
@@ -128,11 +129,77 @@ const MIN_TRACE_WIDTH = 0.127
   report("minTraceWidth", issues)
 }
 
+// Solid GND regions on inner2 (lib/gndPlane.ts): no copper from other nets.
+// The unbroken pours keep the router out; this guards against that changing.
+{
+  const netNames = new Map(
+    circuitJson.filter((e: any) => e.type === "source_net").map((e: any) => [e.source_net_id, e.name]),
+  )
+  const traceNet = new Map(
+    circuitJson
+      .filter((e: any) => e.type === "source_trace")
+      .map((e: any) => [e.source_trace_id, netNames.get(e.connected_source_net_ids?.[0])]),
+  )
+  const inside = ({ x, y }: Point, poly: Point[]) => {
+    let hit = false
+    for (let i = 0, j = poly.length - 1; i < poly.length; j = i++)
+      if (poly[i].y > y !== poly[j].y > y && x < poly[i].x + ((y - poly[i].y) * (poly[j].x - poly[i].x)) / (poly[j].y - poly[i].y))
+        hit = !hit
+    return hit
+  }
+  // closest points of segments pq and uv (distance 0 if they cross)
+  const closest = (p: Point, q: Point, u: Point, v: Point) => {
+    const onSeg = (a: Point, b: Point, c: Point) => {
+      const [dx, dy] = [b.x - a.x, b.y - a.y]
+      const L = dx * dx + dy * dy
+      const t = L ? Math.max(0, Math.min(1, ((c.x - a.x) * dx + (c.y - a.y) * dy) / L)) : 0
+      return { x: a.x + t * dx, y: a.y + t * dy }
+    }
+    const cross = (a: Point, b: Point, c: Point) => (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x)
+    if (cross(p, q, u) * cross(p, q, v) < 0 && cross(u, v, p) * cross(u, v, q) < 0) {
+      const t = cross(u, v, p) / (cross(u, v, p) - cross(u, v, q))
+      const x = { x: p.x + t * (q.x - p.x), y: p.y + t * (q.y - p.y) }
+      return { d: 0, at: x }
+    }
+    const pairs = [[onSeg(p, q, u), u], [onSeg(p, q, v), v], [p, onSeg(u, v, p)], [q, onSeg(u, v, q)]]
+    return pairs
+      .map(([a, b]) => ({ d: Math.hypot(a.x - b.x, a.y - b.y), at: a }))
+      .reduce((m, c) => (c.d < m.d ? c : m))
+  }
+  const issues: Issue[] = []
+  for (const t of circuitJson.filter((e: any) => e.type === "pcb_trace")) {
+    const net = traceNet.get(t.source_trace_id)
+    if (net === "GND") continue
+    search: for (let k = 1; k < t.route.length; k++) {
+      const [a, b] = [t.route[k - 1], t.route[k]]
+      if (a.route_type !== "wire" || b.route_type !== "wire" || a.layer !== GND_PLANE_LAYER) continue
+      // copper overlaps the region: an end inside, or the edge within half a width
+      for (const [region, poly] of Object.entries(GND_PLANE_REGIONS)) {
+        let hit: Point | undefined = inside(a, poly) ? a : inside(b, poly) ? b : undefined
+        for (let i = 0, j = poly.length - 1; !hit && i < poly.length; j = i++) {
+          const c = closest(a, b, poly[j], poly[i])
+          if (c.d < a.width / 2) hit = c.at
+        }
+        if (hit) {
+          issues.push({
+            type: "trace_in_gnd_plane",
+            message: `${t.pcb_trace_id} (${net ?? "?"}) runs on ${GND_PLANE_LAYER} through the ${region} GND plane at (${hit.x.toFixed(2)}, ${hit.y.toFixed(2)})`,
+            center: { x: hit.x, y: hit.y },
+          })
+          break search
+        }
+      }
+    }
+  }
+  report("gndPlaneRegions", issues)
+}
+
 // 3V3 supply topology. The router joins each pad to its nearest same-net pad, so
 // placement decides where currents flow; every re-route can change it. The RGB
 // LED link (R24) must reach the buck without passing the ADS1220 supply pins or
 // their bypass capacitors (LED PWM current off AVDD/DVDD). The buck -> ESP32
-// 3V3 path is reported: the router narrows V3_3 below its 0.25 mm width.
+// 3V3 path is hand-routed at 0.4 mm up to C1; the router narrows V3_3 below its
+// 0.25 mm width, so at most MAX_NARROW_3V3 mm of the path may be narrower.
 {
   const sourceNames = new Map(
     circuitJson.filter((e: any) => e.type === "source_component").map((e: any) => [e.source_component_id, e.name]),
@@ -182,11 +249,17 @@ const MIN_TRACE_WIDTH = 0.127
   const adcSupply = ["U3.AVDD", "U3.DVDD", "C11.pin1", "C13.pin1"]
   if (!led || led.nodes.some((n) => adcSupply.includes(n)))
     issues.push({ type: "led_supply_via_adc", message: `LED supply path: ${led?.nodes.join(" -> ") ?? "none"}` })
-  report("supplyTopology", issues)
   const mcu = path("L1.pin2", "U1.3V3")
   const sum = (key: "narrow" | "wide" | "vias") => mcu?.edges.reduce((s, e) => s + e[key], 0) ?? NaN
+  const MAX_NARROW_3V3 = 3
+  if (!mcu || !(sum("narrow") <= MAX_NARROW_3V3))
+    issues.push({
+      type: "narrow_3v3_path",
+      message: `buck -> U1 3V3: ${mcu ? `${sum("narrow").toFixed(1)} mm below 0.25 mm (max ${MAX_NARROW_3V3})` : "no path"}`,
+    })
+  report("supplyTopology", issues)
   log(
-    `       buck -> U1 3V3: ${sum("narrow").toFixed(1)} mm below 0.25 mm, ${sum("wide").toFixed(1)} mm at 0.25 mm, ${sum("vias")} vias`,
+    `       buck -> U1 3V3: ${sum("narrow").toFixed(1)} mm below 0.25 mm, ${sum("wide").toFixed(1)} mm at 0.25 mm or wider, ${sum("vias")} vias`,
   )
 }
 
