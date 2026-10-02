@@ -400,12 +400,12 @@ export default ({ pours = true }: { pours?: boolean }) => (
 
     {/* VBAT from the battery pad to the charger output by hand: 0.2 mm through
         the gap between R2/R3 and C6's GND pad (the router put a via 0.03 mm
-        from that pad) */}
+        from that pad), then between J2's EH1 and EH2 shell-leg slots */}
     <trace
       from=".C6 > .pin1"
       to=".J4 > .pin3"
       thickness="0.2mm"
-      pcbPath={[...boardPath([1.8, -14.8, 180], [[1.2, -14.08], [4.0, -14.08], [4.8, -12.2]]), ".J4 > .pin3"]}
+      pcbPath={[...boardPath([1.8, -14.8, 180], [[1.2, -14.1], [3.3, -14.1], [3.3, -12.5], [6.0, -12.3]]), ".J4 > .pin3"]}
     />
     <trace from=".C6 > .pin1" to=".U2 > .VBAT" thickness="0.3mm" pcbPath={[".U2 > .VBAT"]} />
 
@@ -912,6 +912,18 @@ export default ({ pours = true }: { pours?: boolean }) => (
       ])}
     />
     <trace from=".U5 > .QSTRT" to=".U5 > .EP" pcbPath={[".U5 > .EP"]} />
+    {/* U5's GND pins to its CTG pin, which reaches the pour: the alert, I2C and
+        pull-up traces around U5 left them a GND island in some routings */}
+    <trace
+      from=".U5 > .GND"
+      to=".U5 > .EP"
+      pcbPath={[...boardPath([6.3, 0.75, 0], [[5.55, 0.25]]), ".U5 > .EP"]}
+    />
+    <trace
+      from=".U5 > .EP"
+      to=".U5 > .CTG"
+      pcbPath={[...boardPath([6.3, 0.75, 0], [[6.95, 0.4]]), ".U5 > .CTG"]}
+    />
     {/* Fuel gauge alert to U1.IO10: under the pull-ups, then inner1 below U1's
         pad row and up between IO10 and the DRDY via */}
     <trace
