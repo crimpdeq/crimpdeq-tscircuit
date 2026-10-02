@@ -62,8 +62,10 @@ v2.0.0 names these the other way round: its `SW+` pad is the power-path input an
   strap, U6 and L1 close U6.IN off from the feedback divider column.
 - Hand-routed signals where the router failed most: U5's I2C through its pull-ups to
   U1, the fuel gauge alert to U1.IO10 (inner1), the ADS1220 SPI and DRDY (vias right of
-  U3, then the top side under U1's pad row, DOUT on inner1), CS to its pull-up, and the
-  front end (AIN0/AIN1 through the input filter, REFP0 to C14/R22, AIN3 to REFN0).
+  U3, then the top side under U1's pad row, DOUT on inner1), CS to its pull-up, the
+  front end (AIN0/AIN1 through the input filter, REFP0 to C14/R22, AIN3 to REFN0), its
+  3V3 (AVDD/DVDD through C11/C13, fed from the 3V3 trunk over inner1) and the four
+  load cell lines to J3 (S-/E- on the bottom, E+/S+ on inner1).
 
 ## Verify
 

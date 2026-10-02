@@ -1080,6 +1080,38 @@ export default ({ pours = true }: { pours?: boolean }) => (
         E_N: "net.LC_EN",
       }}
     />
+    {/* Load cell lines to J3 by hand. Two per layer so they don't cross: on the
+        bottom S- along the board edge, left of the E+ and S+ holes (0.127 mm
+        trace, 0.136 mm to the holes and the edge band), and E- right of them;
+        on inner1 E+ between the C14 and (-7, -5) GND vias, and S+ right of it. */}
+    <trace
+      from=".R22 > .pin2"
+      to=".J3 > .pin1"
+      thickness="0.25mm"
+      pcbPath={boardPath([-7.32, -2.88, 270], [
+        [-6.9, -1.85], [-6.9, -1.85, "bottom", "inner1"], [-6.9, -1.85],
+        [-6.9, -4.3], [-6.6, -4.6], [-6.35, -5.3], [-6.35, -6.4],
+      ])}
+    />
+    <trace
+      from=".R7 > .pin2"
+      to=".J3 > .pin2"
+      pcbPath={boardPath([-4.95, 1.1, 0], [
+        [-5.0, 1.9], [-5.0, 1.9, "bottom", "inner1"], [-5.0, 1.9],
+        [-5.9, 1.0], [-5.9, -7.6], [-6.3, -8.4],
+      ])}
+    />
+    <trace
+      from=".R8 > .pin2"
+      to=".J3 > .pin3"
+      thickness="0.127mm"
+      pcbPath={boardPath([-7.0, 0.1, 0], [[-7.95, -0.3], [-7.95, -11.0]])}
+    />
+    <trace
+      from=".U3 > .REFN0"
+      to=".J3 > .pin4"
+      pcbPath={boardPath([-3.2, -2.88, 0], [[-5.55, -3.13], [-5.55, -5.05], [-6.0, -5.5], [-6.0, -13.2]])}
+    />
     {/* ADS1220 fan-out by hand. SPI: vias right of U3 (its top and inner
         layers are kept out), then the top side to U1's bottom pad row: DOUT
         on inner1 above the keepout, SCLK around R24,
@@ -1235,6 +1267,16 @@ export default ({ pours = true }: { pours?: boolean }) => (
       pcbY={-2.88}
       width={2.6}
       height={2.6}
+      layers={["top", "inner1", "inner2"]}
+    />
+    {/* ...nor onto its CLK/DGND/AVSS/AIN3 pins: the router checks a via only
+        on the layers it joins, and its inner1 -> top vias landed on AVSS */}
+    <keepout
+      shape="rect"
+      pcbX={-3.2}
+      pcbY={-4.6}
+      width={2.0}
+      height={0.9}
       layers={["top", "inner1", "inner2"]}
     />
     {/* Keep the GND pour clear of the E+ and E- wire pads */}
