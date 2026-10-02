@@ -1,11 +1,11 @@
 {
- "fingerprint": "fe8c85dd6bf291d9b7f6ca2be568081f",
- "traces": 155,
- "vias": 121,
+ "fingerprint": "2f6a1eb6e1ab7ff28d7725d99c7a46e1",
+ "traces": 96,
+ "vias": 83,
  "copper_length_mm": {
-  "bottom": 302.3,
-  "inner1": 99.6,
-  "inner2": 149.9,
-  "top": 244.8
+  "bottom": 199.6,
+  "inner1": 99.0,
+  "inner2": 42.7,
+  "top": 110.9
  }
 }

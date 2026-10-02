@@ -13,6 +13,7 @@ import { XL_2121RGBC_2812B } from "./imports/XL_2121RGBC_2812B"
 import { WirePads } from "./lib/WirePads"
 import { GND_PLANE_LAYER, GND_PLANE_REGIONS } from "./lib/gndPlane"
 import { gndPlaneAutorouter } from "./lib/gndPlaneRouter"
+import { HAND_ROUTES } from "./lib/handRoutes"
 
 // Board outline: 17 x 31.5 mm, origin at the board center, antenna at +Y.
 const W = 17
@@ -83,9 +84,9 @@ const GND_VIAS: [number, number][] = [
   [-0.9875, 3.4125], [0.9875, 3.4125], [-0.9875, 5.3875], [0.9875, 5.3875],
   [-3.53, 1.7], [-2.05, 1.4], [-3.2, -5.5],
   [3.95, 6.4], [3.95, 7.65],
-  [-7.5, 7.5], [-7.5, 2.5], [-7.5, 1], [-7.5, -1.5], [-5.5, -8.5], [-5.5, -11.5], [-5.5, -14.5],
+  [-7.5, 7.5], [-6.9, 2.5], [-6.9, 1], [-5.5, -8.5], [-5.5, -11.5], [-5.5, -14.5],
   [7.5, 3], [7.5, 0.5], [7, -1], [7.5, -3], [7.5, -6.5], [5.5, -9.5], [5.5, -13], [7.5, -14.5],
-  [-2, -11.5], [2, -11.5], [0, -7.5], [-0.5, -4.4], [-4, -8], [4.5, -8],
+  [-2, -11.5], [2, -11.5], [0, -10.6], [-0.5, -4.4], [-4, -8], [4.5, -8],
 ]
 
 const esp32GndPins = [
@@ -168,8 +169,9 @@ export default ({ pours = true }: { pours?: boolean }) => (
       footprint="0402"
       {...part(PARTS.R5k1)}
       layer="bottom"
-      pcbX={-1.5}
-      pcbY={-8.15}
+      pcbX={-2.5}
+      pcbY={-7.9}
+      pcbRotation={270}
       schSectionName="usb"
       schX={-21.5}
       schY={8.5}
@@ -182,8 +184,9 @@ export default ({ pours = true }: { pours?: boolean }) => (
       footprint="0402"
       {...part(PARTS.R5k1)}
       layer="bottom"
-      pcbX={1.45}
-      pcbY={-8.15}
+      pcbX={2.5}
+      pcbY={-7.9}
+      pcbRotation={270}
       schSectionName="usb"
       schX={-20}
       schY={8.5}
@@ -222,22 +225,83 @@ export default ({ pours = true }: { pours?: boolean }) => (
       connections={{ pin1: "net.USB_DP", pin2: "net.GND" }}
     />
     {/* ESD and receptacle GND returns by hand: D9/D10 to the J2 GND pins and
-        the shell legs, D7 through a via to R18. Left to the router, these top
-        pads reach bottom GND through a shell-leg hole, and the router fails
-        (SameNetViaMergerSolver: could not find transition layers). */}
+        the shell legs, D7 on the bottom to D10, around the D+ via (VBUS_IN and
+        the USB lines box D7's GND pad in on the top side) */}
     <trace from=".D9 > .pin2" to=".J2 > .A1B12" thickness="0.25mm" pcbPath={[".J2 > .A1B12"]} />
     <trace from=".D10 > .pin2" to=".J2 > .B1A12" thickness="0.25mm" pcbPath={[".J2 > .B1A12"]} />
     <trace from=".J2 > .A1B12" to=".J2 > .EH3" thickness="0.25mm" pcbPath={[".J2 > .EH3"]} />
     <trace from=".J2 > .B1A12" to=".J2 > .EH2" thickness="0.25mm" pcbPath={[".J2 > .EH2"]} />
     <trace
       from=".D7 > .pin2"
-      to=".R18 > .pin2"
+      to=".D10 > .pin2"
       thickness="0.25mm"
-      // via at (0.75, -7.3); D7 is unrotated at (0, -6.603)
       pcbPath={[
-        { x: 0.75, y: -0.697 },
-        { x: 0.75, y: -0.697, via: true, fromLayer: "top", toLayer: "bottom" },
-        { x: 0.75, y: -0.697 },
+        ...boardPath([0, -6.603, 0], [
+          [0.75, -7.3], [0.75, -7.3, "top", "bottom"], [0.75, -7.3],
+          [1.1, -6.7], [3.0, -6.7],
+          [3.35, -7.4], [3.35, -7.4, "bottom", "top"], [3.35, -7.4],
+        ]),
+        ".D10 > .pin2",
+      ]}
+    />
+    {/* USB by hand. CC1/CC2: a via above each pin to its pull-down. D-: B7
+        and A7 meet at D7; D+: A6 and B6 meet through two vias, then B6 to D10.
+        From the ESD diodes D- runs on inner1 and D+ on inner2 up the east side
+        to vias right of U1's IO18/IO19 (VBUS_IN closes the top side). */}
+    <trace
+      from=".J2 > .A5"
+      to=".R19 > .pin1"
+      pcbPath={[...boardPath([0, J2_Y, 0], [[-1.25, -8.05], [-1.25, -8.05, "top", "bottom"], [-1.25, -8.05]]), ".R19 > .pin1"]}
+    />
+    <trace
+      from=".J2 > .B5"
+      to=".R18 > .pin1"
+      pcbPath={[...boardPath([0, J2_Y, 0], [[1.75, -8.05], [1.75, -8.05, "top", "bottom"], [1.75, -8.05]]), ".R18 > .pin1"]}
+    />
+    <trace from=".J2 > .B7" to=".D7 > .pin1" pcbPath={[".D7 > .pin1"]} />
+    <trace
+      from=".J2 > .A7"
+      to=".D7 > .pin1"
+      pcbPath={[...boardPath([0, J2_Y, 0], [[0.25, -7.6], [-0.45, -7.05]]), ".D7 > .pin1"]}
+    />
+    <trace
+      from=".D7 > .pin1"
+      to=".U1 > .IO18"
+      pcbPath={[
+        ...boardPath([0, -6.603, 0], [
+          [-0.75, -7.25], [-0.75, -7.25, "top", "inner1"], [-0.75, -7.25],
+          [0.6, -6.6], [0.6, -2.4], [5.6, -2.4], [5.6, 1.2],
+          [7.6, 1.2], [7.6, 1.2, "inner1", "top"], [7.6, 1.2],
+        ]),
+        ".U1 > .IO18",
+      ]}
+    />
+    <trace
+      from=".J2 > .A6"
+      to=".J2 > .B6"
+      pcbPath={[
+        ...boardPath([0, J2_Y, 0], [
+          [-0.25, -8.05], [-0.25, -8.05, "top", "bottom"], [-0.25, -8.05],
+          [0.75, -8.05], [0.75, -8.05, "bottom", "top"], [0.75, -8.05],
+        ]),
+        ".J2 > .B6",
+      ]}
+    />
+    <trace
+      from=".J2 > .B6"
+      to=".D10 > .pin1"
+      pcbPath={[...boardPath([0, J2_Y, 0], [[0.75, -8.05], [1.25, -7.6], [1.85, -7.2]]), ".D10 > .pin1"]}
+    />
+    <trace
+      from=".D10 > .pin1"
+      to=".U1 > .IO19"
+      pcbPath={[
+        ...boardPath([2.6, -6.603, 0], [
+          [1.85, -7.2], [1.85, -7.2, "top", "inner2"], [1.85, -7.2],
+          [2.3, -6.7], [6.2, -6.7], [6.2, 2.0],
+          [7.6, 2.0], [7.6, 2.0, "inner2", "top"], [7.6, 2.0],
+        ]),
+        ".U1 > .IO19",
       ]}
     />
     {/* VBUS_IN on the top side, clear of J2's locating holes (the router passed
@@ -296,6 +360,8 @@ export default ({ pours = true }: { pours?: boolean }) => (
     />
     <capacitor
       name="C5"
+      // charger input: also the VBUS link to Q2 and U2 (lib/handRoutes.ts)
+      maxDecouplingTraceLength="12mm"
       capacitance="4.7uF"
       maxVoltageRating="16V"
       footprint="0603"
@@ -316,9 +382,9 @@ export default ({ pours = true }: { pours?: boolean }) => (
       footprint="0603"
       {...part(PARTS.C4u7_0603)}
       layer="bottom"
-      // also the VBAT junction to the battery pad (hand-routed, 6.6 mm); core
+      // also the VBAT junction to the battery pad (hand-routed, 8.2 mm); core
       // otherwise limits capacitor traces to 1 mm and skips autorouting
-      maxDecouplingTraceLength="7mm"
+      maxDecouplingTraceLength="9mm"
       pcbX={1.8}
       pcbY={-14.8}
       pcbRotation={180}
@@ -408,6 +474,40 @@ export default ({ pours = true }: { pours?: boolean }) => (
       pcbPath={[...boardPath([1.8, -14.8, 180], [[1.2, -14.05], [3.3, -14.05], [3.3, -12.5], [6.0, -12.3]]), ".J4 > .pin3"]}
     />
     <trace from=".C6 > .pin1" to=".U2 > .VBAT" thickness="0.3mm" pcbPath={[".U2 > .VBAT"]} />
+    <trace from=".J4 > .pin2" to=".J4 > .pin3" thickness="0.3mm" pcbPath={[".J4 > .pin3"]} />
+
+    {/* Charger signals by hand: PROG above U2's pins to R2, STAT between R2's
+        pads to R3, and the charge LED cathode from R3 up the bottom (between
+        J2's locating hole and EH2 slot, then between R9 and Q2) to D1 */}
+    <trace
+      from=".U2 > .PROG"
+      to=".R2 > .pin1"
+      pcbPath={[...boardPath([-1.7, -13.85, 90], [[-2.86, -12.2], [0.95, -12.2]]), ".R2 > .pin1"]}
+    />
+    <trace
+      from=".U2 > .STAT"
+      to=".R3 > .pin1"
+      thickness="0.127mm"
+      pcbPath={[...boardPath([-1.7, -13.85, 90], [[2.3, -12.9]]), ".R3 > .pin1"]}
+    />
+    <trace
+      from=".R3 > .pin2"
+      to=".D1 > .pin2"
+      thickness="0.127mm"
+      pcbPath={[
+        ...boardPath([2.3, -12.9, 90], [
+          [2.9, -13.41], [2.9, -11.9], [3.465, -11.2], [3.465, -9.0], [4.05, -8.3],
+          [4.05, -2.5], [4.1, -1.9], [4.1, -1.9, "bottom", "top"], [4.1, -1.9],
+        ]),
+        ".D1 > .pin2",
+      ]}
+    />
+    <trace
+      from=".Q2 > .pin3"
+      to=".J4 > .pin1"
+      thickness="0.3mm"
+      pcbPath={[...boardPath([5.9, -5.406, 0], [[6.85, -6.0], [6.85, -7.2]]), ".J4 > .pin1"]}
+    />
 
     {/* ---------------- Power path ---------------- */}
     <B5819WS
@@ -657,6 +757,8 @@ export default ({ pours = true }: { pours?: boolean }) => (
     />
     <capacitor
       name="C9"
+      // also the 3V3 link to U1.3V3 (lib/handRoutes.ts)
+      maxDecouplingTraceLength="5mm"
       capacitance="10uF"
       footprint="0603"
       {...part(PARTS.C10u_0603)}
@@ -805,9 +907,9 @@ export default ({ pours = true }: { pours?: boolean }) => (
       capacitance="100nF"
       footprint="0402"
       {...part(PARTS.C100n)}
-      // fed from D4.VDD between the LED pads (hand-routed, 2.5 mm); core
+      // also the LED supply links from D4.VDD and R24 (up to 10 mm); core
       // otherwise limits capacitor traces to 1 mm and skips autorouting
-      maxDecouplingTraceLength="3mm"
+      maxDecouplingTraceLength="11mm"
       pcbX={-6.3}
       pcbY={-5.256}
       pcbRotation={180}
@@ -843,6 +945,8 @@ export default ({ pours = true }: { pours?: boolean }) => (
     />
     <capacitor
       name="C18"
+      // also the VBAT link to the battery pad (lib/handRoutes.ts)
+      maxDecouplingTraceLength="12mm"
       capacitance="100nF"
       footprint="0402"
       {...part(PARTS.C100n)}
@@ -1130,17 +1234,16 @@ export default ({ pours = true }: { pours?: boolean }) => (
         E_N: "net.LC_EN",
       }}
     />
-    {/* Load cell lines to J3 by hand. Two per layer so they don't cross: on the
-        bottom S- along the board edge, left of the E+ and S+ holes (0.127 mm
-        trace, 0.136 mm to the holes and the edge band), and E- right of them;
-        on inner1 E+ along the board edge, and S+ right of it. */}
+    {/* Load cell lines to J3 by hand, laid out so they don't cross: E- on the
+        bottom right of the E+, S+ and S- holes, E+ on inner1 down x = -6.4 and
+        S+ right of it (S- is in lib/handRoutes.ts) */}
     <trace
       from=".R22 > .pin2"
       to=".J3 > .pin1"
       thickness="0.25mm"
       pcbPath={boardPath([-7.32, -2.88, 270], [
         [-6.9, -1.85], [-6.9, -1.85, "bottom", "inner1"], [-6.9, -1.85],
-        [-7.55, -2.6], [-7.55, -6.6],
+        [-6.4, -2.4], [-6.4, -6.4],
       ])}
     />
     <trace
@@ -1152,22 +1255,15 @@ export default ({ pours = true }: { pours?: boolean }) => (
       ])}
     />
     <trace
-      from=".R8 > .pin2"
-      to=".J3 > .pin3"
-      thickness="0.127mm"
-      pcbPath={boardPath([-7.0, 0.1, 0], [[-7.95, -0.3], [-7.95, -11.0]])}
-    />
-    <trace
       from=".U3 > .REFN0"
       to=".J3 > .pin4"
       pcbPath={boardPath([-3.2, -2.88, 0], [[-5.55, -3.13], [-5.55, -5.05], [-6.0, -5.5], [-6.0, -13.2]])}
     />
-    {/* ADS1220 fan-out by hand. SPI: vias right of U3 (its top and inner
-        layers are kept out), then the top side to U1's bottom pad row: DOUT
-        on inner1 above the keepout, SCLK around R24,
-        DRDY over the row under the module, left of FG_ALRT. Front end:
-        AIN0/AIN1 to the filter, REFP0 to C14/R22, AIN3 to REFN0 around the
-        lower-left corner. */}
+    {/* ADS1220 fan-out by hand (DIN, SCLK and CS to U1 are in
+        lib/handRoutes.ts). DOUT: a via right of U3 (its top and inner layers are
+        kept out) and inner1 above the keepout to IO1; DRDY: over U1's bottom pad
+        row under the module, left of FG_ALRT. Front end: AIN0/AIN1 to the
+        filter, REFP0 to C14/R22, AIN3 to REFN0 around the lower-left corner. */}
     <trace
       from=".U3 > .DOUT"
       to=".U1 > .IO1"
@@ -1183,22 +1279,6 @@ export default ({ pours = true }: { pours?: boolean }) => (
       pcbPath={boardPath([-3.2, -2.88, 0], [
         [-1.9, -0.77], [-1.9, 0.5], [-1.9, 0.5, "bottom", "top"], [-1.9, 0.5],
         [-2.2, 0.9], [-4.8, 0.9],
-      ])}
-    />
-    <trace
-      from=".U3 > .DIN"
-      to=".U1 > .IO4"
-      pcbPath={boardPath([-3.2, -2.88, 0], [
-        [-0.55, -2.45], [-0.55, -2.45, "bottom", "top"], [-0.55, -2.45],
-        [-0.4, -2.3], [-0.4, -1.3],
-      ])}
-    />
-    <trace
-      from=".U3 > .SCLK"
-      to=".U1 > .IO5"
-      pcbPath={boardPath([-3.2, -2.88, 0], [
-        [0.05, -3.0], [0.05, -3.0, "bottom", "top"], [0.05, -3.0],
-        [1.9, -2.9], [1.9, -1.5], [0.8, -1.2],
       ])}
     />
     <trace
@@ -1284,7 +1364,7 @@ export default ({ pours = true }: { pours?: boolean }) => (
       to=".D4 > .GND"
       pcbPath={boardPath([-6.37, -2.88, 90], [
         [-7.0, -4.2], [-7.0, -5.0], [-7.0, -5.0, "bottom", "top"], [-7.0, -5.0],
-        [-7.27, -4.3],
+        [-7.0, -4.3],
       ])}
     />
     <trace
@@ -1292,6 +1372,16 @@ export default ({ pours = true }: { pours?: boolean }) => (
       to=".U3 > .REFN0"
       pcbPath={boardPath([-3.2, -2.88, 0], [[-3.95, -5.05], [-5.55, -5.05], [-5.55, -3.13]])}
     />
+
+    {/* Generated fixed routes for the remaining nets (lib/handRoutes.ts) */}
+    {HAND_ROUTES.map((r) => (
+      <trace
+        from={r.from}
+        to={r.to}
+        thickness={`${r.width}mm`}
+        pcbPath={[...boardPath(r.frame, r.points), r.to]}
+      />
+    ))}
 
     {/* ---------------- Layout constraints ---------------- */}
     {/* No copper under the ESP32-C3-MINI-1 PCB antenna on any layer */}

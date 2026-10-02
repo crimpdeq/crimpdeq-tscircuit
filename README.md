@@ -45,27 +45,25 @@ v2.0.0 names these the other way round: its `SW+` pad is the power-path input an
   3.0–5.5 V only as the supply limit and full function at 4.5–5.5 V, so at 3.3 V
   blue and green may be dim; the WS2812B-5050 (3.7–5.3 V) was also run at 3.3 V.
 - Added: 4.7 kΩ I2C pull-ups (MAX17048), 100 nF at the RGB LED, a battery GND pad (B−).
-- ADS1220 100 nF bypass capacitors (C11, C13) 0.5 mm from AVDD/DVDD, fed from the
-  C10 bulk capacitor, with GND vias at their GND pads.
-- RGB LED fed through a 0 Ω link (R24) that joins 3V3 at C10, so the LED current
-  doesn't flow along the ADS1220 supply path.
+- ADS1220 100 nF bypass capacitors (C11, C13) 0.5 mm from AVDD/DVDD, with GND vias at
+  their GND pads; 3V3 reaches their pads before the pins (from the 3V3 trunk through C13).
+- RGB LED fed through a 0 Ω link (R24) whose 3V3 side doesn't run along the ADS1220
+  supply path (`scripts/drc.ts` checks this).
 - USB-C shield tied directly to GND (R17 0 Ω removed).
 - 3V3 buck laid out after the SY8088 layout notes, with its power copper routed by hand:
   C15's GND pad lines up with the gap between FB and IN, so a 0.8 mm strap reaches
   the GND pin under the package; C17's GND pad joins C15's; LX reaches L1 in 0.7 mm;
   the feedback divider sits at the FB pin and senses 3V3 at C17.
 - 3V3 from C17 to the ESP32 decoupling (D3, C4, C2, C1, C9) is a 0.4 mm hand-routed
-  trunk (v2.0.0 used up to 0.61 mm; the router narrows V3_3 to 0.127 mm).
+  trunk (v2.0.0 used up to 0.61 mm).
 - ESD diode and receptacle GND pads are tied by hand to the J2 GND pins, the shell legs
   and (D7) a via.
 - The buck EN pull-up (R14) gets VSYS from U6.IN over inner1: on the bottom side the GND
   strap, U6 and L1 close U6.IN off from the feedback divider column.
-- Hand-routed signals where the router failed most: U5's I2C through its pull-ups to
-  U1, the fuel gauge alert to U1.IO10 (inner1), the ADS1220 SPI and DRDY (vias right of
-  U3, then the top side under U1's pad row, DOUT on inner1), CS to its pull-up, the
-  front end (AIN0/AIN1 through the input filter, REFP0 to C14/R22, AIN3 to REFN0), its
-  3V3 (AVDD/DVDD through C11/C13, fed from the 3V3 trunk over inner1) and the four
-  load cell lines to J3 (S-/E- on the bottom, E+/S+ on inner1).
+- All copper is fixed (see Routing): hand-written traces for the buck, the 3V3 trunk,
+  the USB and ESD fan-out, the charger signals, U5's I2C and alert, the ADS1220 fan-out,
+  front end and supply, three load cell lines and the RGB LED corner; generated routes
+  for the other nets.
 
 ## Verify
 
@@ -134,49 +132,55 @@ Assembly notes for PCBWay:
 
 ## Routing
 
-Traces come from the tscircuit autorouter, which is deterministic: with the
-pinned tool versions the same design always routes the same way, and
-`scripts/routing.py` fails `verify` if the routed copper changes.
+All copper is fixed; the autorouter has nothing left to route.
 
-At this density the router sometimes leaves via-to-pad clearance violations or
-shorts that its own DRC misses, and any change to PCB placement, footprints or
-routing rules re-routes the whole board. After such a change:
+- GND is left to the GND pours on all four layers and the stitching vias.
+  `lib/gndPlaneRouter.ts` removes it from the autorouter input, and
+  `checkEachPcbPortConnectedToPcbTraces` fails if any GND pad ends up on its own
+  copper island (a pad boxed in by other traces needs a via or a trace of its own,
+  as C14's and U1.GND4's do).
+- Traces with a layout intent are written by hand in `index.circuit.tsx` (see the
+  design changes above).
+- The other nets (VSYS, VBUS, VBAT, the rest of 3V3, the SPI clock and data, CS,
+  LED data, CHIP_PU, S-) are generated into `lib/handRoutes.ts` by
+  `scripts/handroute.sh`. It builds the board without them and without the
+  autorouter (`GND_ROUTER_SKIP=1`), then `scripts/handroute.ts` routes the nets in
+  `scripts/handroute.json`, in that order, on a 0.05 mm grid over the four layers:
+  0.127 mm to other nets, vias 0.15 mm from pads, through vias that block every
+  layer, and inner2 kept clear in the GND plane regions.
+
+After a change to placement, footprints or the hand-written traces:
 
 ```sh
-npm run search -- --adopt        # nudges passives until the board routes clean
+scripts/handroute.sh             # regenerates lib/handRoutes.ts
 npm run verify                   # fails on the routing baseline: expected
 python3 scripts/routing.py --update && npm run verify
 ```
 
-`scripts/search.py` works in a scratch directory outside the project, builds 8
-variants at a time, nudges the passives nearest the remaining errors, and stops
-at the first variant with a clean DRC, no shorts and a clean placement check.
+If a net doesn't route, `scripts/handroute.sh` fails and leaves `lib/handRoutes.ts`
+unchanged: move it earlier in `scripts/handroute.json` (earlier nets get the room) or
+change the hand-written traces around it.
 
-The router output depends on the platform: the accepted routing comes from macOS
-arm64, which CI uses, and a Linux x64 build of the same design routes differently.
-Run the search and accept routings on macOS.
+Hand-written traces are `<trace>` elements with a non-empty `pcbPath`
+(`pcbPath={[toPort]}` for a straight line between pad centers): core fixes only
+those, and the autorouter routed across `pcbPath={[]}` ones. `pcbStraightLine` ends
+traces at the pad edge, and tscircuit then attaches the end to whichever pad covers
+that point on any layer (here U1's pads on the top side). Core limits traces to a
+power-to-ground capacitor to 1 mm and skips autorouting (and fails the build) if a
+fixed trace is longer; capacitors with longer fixed traces set
+`maxDecouplingTraceLength`.
 
-The buck power copper, the 3V3 trunk and the USB-area GND returns are `<trace>`
-elements with `pcbPath` (`pcbPath={[toPort]}` for a straight line between pad
-centers; core fixes only traces with a non-empty `pcbPath`, and the router crossed
-`pcbPath={[]}` ones).
-`pcbStraightLine` ends traces at the pad edge, and tscircuit then attaches the end to
-whichever pad covers that point on any layer (here U1's pads on the top side).
-Routing on only three layers (all of inner2 reserved) left the board unroutable,
-and the router fails outright when it uses a shell-leg hole of J2 as a layer change
-(`SameNetViaMergerSolver could not find transition layers`), which the hand-routed
-USB GND returns avoid.
-
-The board routes with `lib/gndPlaneRouter.ts` (`autorouter={{ algorithmFn }}`): the
-stock solver with two changes to its input. GND is not routed: the GND pours on all
-four layers and the stitching vias join the GND pads, and
-`checkEachPcbPortConnectedToPcbTraces` fails if any GND pad is left on its own copper
-island (a pad boxed in by hand-routed traces needs a via or a trace of its own, as
-C14's does). Routed, GND took half of the router's traces and most of its errors. The
-`unbroken` inner2 GND pours are detached from GND, so they only keep other nets out.
-Attached, the router escapes nearby GND pads into the pour with vias whose clearance it
-checks only between the pad and pour layers; built as through vias, they landed on pads
-on the other side (L1, C16, C17, C11, C12).
+The tscircuit autorouter is deterministic, but at this density it left via-to-pad
+violations and shorts that its own DRC misses, routed across fixed traces, and placed
+vias it checked on only some of the layers they cross. `scripts/search.py` (nudges
+passives until the board routes clean) and its output depending on the platform
+(macOS arm64 against Linux x64) only matter again if nets are left to it.
+`lib/gndPlaneRouter.ts` keeps it in place: the stock solver with GND removed and the
+`unbroken` inner2 GND pours detached from GND, so they only keep other nets out.
+Attached, the router escaped nearby GND pads into the pour with vias whose clearance
+it checked only between the pad and pour layers; built as through vias, they landed
+on pads on the other side (L1, C16, C17, C11, C12). Routing on only three layers (all
+of inner2 reserved) left the board unroutable.
 
 ## License
 
