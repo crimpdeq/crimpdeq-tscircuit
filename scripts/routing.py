@@ -11,10 +11,16 @@ args = [a for a in sys.argv[1:] if not a.startswith("--")]
 cj = json.load(open(args[0] if args else "dist/index/circuit.json"))
 
 def point(p):
-    # through_pad: a layer change through a plated hole or via, given as start/end
-    if p.get("route_type") == "through_pad":
-        return (round(p["start"]["x"], 4), round(p["start"]["y"], 4), p["start_layer"], p["end_layer"])
-    return (round(p["x"], 4), round(p["y"], 4), p.get("layer"))
+    # Every property that shapes copper: wire width and layer, the layers a via
+    # joins, and both ends of a through_pad (a layer change through a plated hole
+    # or via, entered at start and left at end)
+    r = lambda v: round(v, 4)
+    kind = p.get("route_type")
+    if kind == "through_pad":
+        return (kind, r(p["start"]["x"]), r(p["start"]["y"]), r(p["end"]["x"]), r(p["end"]["y"]), p["start_layer"], p["end_layer"])
+    if kind == "via":
+        return (kind, r(p["x"]), r(p["y"]), p.get("from_layer"), p.get("to_layer"))
+    return (kind, r(p["x"]), r(p["y"]), p.get("layer"), r(p.get("width", 0)))
 
 
 traces = sorted((e["pcb_trace_id"], [point(p) for p in e["route"]]) for e in cj if e["type"] == "pcb_trace")
