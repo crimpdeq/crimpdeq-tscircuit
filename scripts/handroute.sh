@@ -7,9 +7,12 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 export PATH="$PWD/node_modules/.bin:$PATH"
 scratch=$(mktemp -d)
-trap 'rm -rf "$scratch"' EXIT
-
 cp lib/handRoutes.ts "$scratch/handRoutes.ts"
+# Until the new routes are written, any exit restores the previous ones
+done=0
+trap '[ "$done" = 1 ] || cp "$scratch/handRoutes.ts" lib/handRoutes.ts; rm -rf "$scratch"' EXIT
+trap 'exit 130' INT TERM
+
 echo "export const HAND_ROUTES: any[] = []" > lib/handRoutes.ts
 rm -f dist/index/circuit.json
 # Hard time limit: Bun ignores SIGALRM and some builds hang after routing
@@ -19,14 +22,11 @@ pid=$!
 watchdog=$!
 wait "$pid" || true
 { kill "$watchdog" && wait "$watchdog"; } 2>/dev/null || true
-if [ ! -s dist/index/circuit.json ]; then
-  cp "$scratch/handRoutes.ts" lib/handRoutes.ts
-  echo "handroute: build failed" >&2
-  exit 1
-fi
+[ -s dist/index/circuit.json ] || { echo "handroute: build failed" >&2; exit 1; }
 cp dist/index/circuit.json "$scratch/unrouted.json"
-bun scripts/handroute.ts "$scratch/unrouted.json" scripts/handroute.json lib/handRoutes.ts || {
-  cp "$scratch/handRoutes.ts" lib/handRoutes.ts
+bun scripts/handroute.ts "$scratch/unrouted.json" scripts/handroute.json "$scratch/handRoutes.new.ts" || {
   echo "handroute: some nets did not route; lib/handRoutes.ts unchanged" >&2
   exit 1
 }
+cp "$scratch/handRoutes.new.ts" lib/handRoutes.ts
+done=1
