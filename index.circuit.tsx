@@ -336,7 +336,7 @@ export default ({ pours = true }: { pours?: boolean }) => (
       {...part(PARTS.R4k7)}
       layer="bottom"
       pcbX={1.2}
-      pcbY={-13.05}
+      pcbY={-12.9}
       pcbRotation={90}
       schSectionName="charger"
       schX={-7.5}
@@ -351,7 +351,7 @@ export default ({ pours = true }: { pours?: boolean }) => (
       {...part(PARTS.R1k)}
       layer="bottom"
       pcbX={2.3}
-      pcbY={-13.05}
+      pcbY={-12.9}
       pcbRotation={90}
       schSectionName="charger"
       schX={-12.5}
@@ -405,7 +405,7 @@ export default ({ pours = true }: { pours?: boolean }) => (
       from=".C6 > .pin1"
       to=".J4 > .pin3"
       thickness="0.2mm"
-      pcbPath={[...boardPath([1.8, -14.8, 180], [[1.2, -14.1], [3.3, -14.1], [3.3, -12.5], [6.0, -12.3]]), ".J4 > .pin3"]}
+      pcbPath={[...boardPath([1.8, -14.8, 180], [[1.2, -14.05], [3.3, -14.05], [3.3, -12.5], [6.0, -12.3]]), ".J4 > .pin3"]}
     />
     <trace from=".C6 > .pin1" to=".U2 > .VBAT" thickness="0.3mm" pcbPath={[".U2 > .VBAT"]} />
 
