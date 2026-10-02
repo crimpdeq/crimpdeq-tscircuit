@@ -923,7 +923,7 @@ export default ({ pours = true }: { pours?: boolean }) => (
       }}
     />
     {/* AVDD/DVDD bypass 0.5 mm from pins 10/11 (datasheet 9.4.1): the 3V3 feed
-        from the C10 bulk capacitor passes their pads before reaching the pins */}
+        passes their pads before reaching the pins (hand-routed below) */}
     <capacitor
       name="C11"
       capacitance="100nF"
@@ -1132,12 +1132,21 @@ export default ({ pours = true }: { pours?: boolean }) => (
     <trace from=".C12 > .pin1" to=".R7 > .pin1" pcbPath={[".R7 > .pin1"]} />
     {/* AVDD/DVDD: to their bypass capacitors, which are joined, and from C13
         through a via in its 3V3 pad and inner1 to the 3V3 trunk at (-2, 2.6).
-        AIN0, DRDY and the GND pads of C11/C13 close this corner on the bottom. */}
-    <trace from=".U3 > .AVDD" to=".C11 > .pin1" thickness="0.25mm" pcbPath={[".C11 > .pin1"]} />
+        AIN0, DRDY and the GND pads of C11/C13 close this corner on the bottom.
+        maxLength overrides core's automatic 1 mm limit for 100 nF bypass
+        traces, which skips autorouting when a hand-routed one exceeds it. */}
+    <trace
+      from=".U3 > .AVDD"
+      to=".C11 > .pin1"
+      thickness="0.25mm"
+      maxLength="1.5mm"
+      pcbPath={[".C11 > .pin1"]}
+    />
     <trace
       from=".U3 > .DVDD"
       to=".C13 > .pin1"
       thickness="0.25mm"
+      maxLength="1.5mm"
       pcbPath={[...boardPath([-3.2, -2.88, 0], [[-2.95, -0.55]]), ".C13 > .pin1"]}
     />
     <trace from=".C11 > .pin1" to=".C13 > .pin1" thickness="0.25mm" pcbPath={[".C13 > .pin1"]} />
@@ -1145,6 +1154,7 @@ export default ({ pours = true }: { pours?: boolean }) => (
       from=".C13 > .pin1"
       to=".C17 > .pin1"
       thickness="0.25mm"
+      maxLength="12mm"
       pcbPath={boardPath([-2.57, 0.48, 270], [
         [-2.57, 0.3], [-2.57, 0.3, "bottom", "inner1"], [-2.57, 0.3],
         [-3.0, 1.0], [-3.0, 2.25],
