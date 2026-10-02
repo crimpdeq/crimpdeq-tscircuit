@@ -43,8 +43,10 @@ below override the skill where they conflict.
 - `USB_OVERHANG` is limited to ~1.2 mm by the USB-C front shell-leg slots.
 - The router output differs between macOS arm64 (CI and the accepted baselines)
   and Linux x64. Run `npm run search` and accept routings on macOS.
-- Hand-routed traces: use `pcbPath` (`pcbPath={[]}` for a straight line), not
-  `pcbStraightLine`, which attaches clipped ends to top-side U1 pads.
+- Hand-routed traces: use a non-empty `pcbPath` (`pcbPath={[".X > .pin"]}`, the
+  `to` port, for a straight line), not `pcbStraightLine`, which attaches clipped
+  ends to top-side U1 pads. Core fixes only traces with a non-empty `pcbPath`; the
+  router treated `pcbPath={[]}` traces as soft and routed across them.
 - inner2 is reserved for GND under the buck and the ADC (`lib/gndPlane.ts`);
   reserving all of it left the board unroutable.
 - The board autorouter is `lib/gndPlaneRouter.ts`, the stock solver with GND

@@ -225,10 +225,10 @@ export default ({ pours = true }: { pours?: boolean }) => (
         the shell legs, D7 through a via to R18. Left to the router, these top
         pads reach bottom GND through a shell-leg hole, and the router fails
         (SameNetViaMergerSolver: could not find transition layers). */}
-    <trace from=".D9 > .pin2" to=".J2 > .A1B12" thickness="0.25mm" pcbPath={[]} />
-    <trace from=".D10 > .pin2" to=".J2 > .B1A12" thickness="0.25mm" pcbPath={[]} />
-    <trace from=".J2 > .A1B12" to=".J2 > .EH3" thickness="0.25mm" pcbPath={[]} />
-    <trace from=".J2 > .B1A12" to=".J2 > .EH2" thickness="0.25mm" pcbPath={[]} />
+    <trace from=".D9 > .pin2" to=".J2 > .A1B12" thickness="0.25mm" pcbPath={[".J2 > .A1B12"]} />
+    <trace from=".D10 > .pin2" to=".J2 > .B1A12" thickness="0.25mm" pcbPath={[".J2 > .B1A12"]} />
+    <trace from=".J2 > .A1B12" to=".J2 > .EH3" thickness="0.25mm" pcbPath={[".J2 > .EH3"]} />
+    <trace from=".J2 > .B1A12" to=".J2 > .EH2" thickness="0.25mm" pcbPath={[".J2 > .EH2"]} />
     <trace
       from=".D7 > .pin2"
       to=".R18 > .pin2"
@@ -545,10 +545,10 @@ export default ({ pours = true }: { pours?: boolean }) => (
         sits at IN, and its GND pad lines up with the gap between FB and IN, so a
         0.8 mm bottom-layer strap reaches the GND pin under the package, with
         two GND vias on it. C17's GND pad joins C15's, and LX reaches L1 in 0.7 mm. */}
-    <trace from=".C15 > .pin2" to=".U6 > .GND" thickness="0.8mm" pcbPath={[]} />
-    <trace from=".C17 > .pin2" to=".C15 > .pin2" thickness="0.8mm" pcbPath={[]} />
-    <trace from=".C15 > .pin1" to=".U6 > .IN" thickness="0.5mm" pcbPath={[]} />
-    <trace from=".U6 > .LX" to=".L1 > .pin1" thickness="0.6mm" pcbPath={[]} />
+    <trace from=".C15 > .pin2" to=".U6 > .GND" thickness="0.8mm" pcbPath={[".U6 > .GND"]} />
+    <trace from=".C17 > .pin2" to=".C15 > .pin2" thickness="0.8mm" pcbPath={[".C15 > .pin2"]} />
+    <trace from=".C15 > .pin1" to=".U6 > .IN" thickness="0.5mm" pcbPath={[".U6 > .IN"]} />
+    <trace from=".U6 > .LX" to=".L1 > .pin1" thickness="0.6mm" pcbPath={[".L1 > .pin1"]} />
     {/* L1 -> C17 around C15, and the 3V3 trunk from C17 along the ESP32
         decoupling (D3, C4, C2, C1, C9 at U1 3V3) */}
     <trace
@@ -563,10 +563,10 @@ export default ({ pours = true }: { pours?: boolean }) => (
       thickness="0.4mm"
       pcbPath={boardPath([2.23, 3.85, 270], [[1.8, 2.6], [-2.0, 2.6], [-2.0, 8.675]])}
     />
-    <trace from=".D3 > .pin1" to=".C4 > .pin1" thickness="0.4mm" pcbPath={[]} />
-    <trace from=".C4 > .pin1" to=".C2 > .pin1" thickness="0.4mm" pcbPath={[]} />
-    <trace from=".C2 > .pin1" to=".C1 > .pin1" thickness="0.4mm" pcbPath={[]} />
-    <trace from=".C1 > .pin1" to=".C9 > .pin1" thickness="0.4mm" pcbPath={[]} />
+    <trace from=".D3 > .pin1" to=".C4 > .pin1" thickness="0.4mm" pcbPath={[".C4 > .pin1"]} />
+    <trace from=".C4 > .pin1" to=".C2 > .pin1" thickness="0.4mm" pcbPath={[".C2 > .pin1"]} />
+    <trace from=".C2 > .pin1" to=".C1 > .pin1" thickness="0.4mm" pcbPath={[".C1 > .pin1"]} />
+    <trace from=".C1 > .pin1" to=".C9 > .pin1" thickness="0.4mm" pcbPath={[".C9 > .pin1"]} />
     {/* Feedback: divider at the FB pin, sensing 3V3 at C17 */}
     <trace
       from=".R15 > .pin1"
@@ -574,11 +574,11 @@ export default ({ pours = true }: { pours?: boolean }) => (
       thickness="0.15mm"
       pcbPath={boardPath([1.35, 6.34, 180], [[0.45, 6.0], [0.45, 2.95]])}
     />
-    <trace from=".C16 > .pin1" to=".R15 > .pin1" thickness="0.15mm" pcbPath={[]} />
-    <trace from=".R15 > .pin2" to=".U6 > .FB" thickness="0.15mm" pcbPath={[]} />
-    <trace from=".C16 > .pin2" to=".R15 > .pin2" thickness="0.15mm" pcbPath={[]} />
-    <trace from=".R16 > .pin1" to=".C16 > .pin2" thickness="0.15mm" pcbPath={[]} />
-    <trace from=".R14 > .pin2" to=".U6 > .EN" thickness="0.15mm" pcbPath={[]} />
+    <trace from=".C16 > .pin1" to=".R15 > .pin1" thickness="0.15mm" pcbPath={[".R15 > .pin1"]} />
+    <trace from=".R15 > .pin2" to=".U6 > .FB" thickness="0.15mm" pcbPath={[".U6 > .FB"]} />
+    <trace from=".C16 > .pin2" to=".R15 > .pin2" thickness="0.15mm" pcbPath={[".R15 > .pin2"]} />
+    <trace from=".R16 > .pin1" to=".C16 > .pin2" thickness="0.15mm" pcbPath={[".C16 > .pin2"]} />
+    <trace from=".R14 > .pin2" to=".U6 > .EN" thickness="0.15mm" pcbPath={[".U6 > .EN"]} />
     {/* EN pull-up supply: the bottom layer around U6.IN is closed by the GND
         strap, U6 and L1, so VSYS reaches R14 on inner1 */}
     <trace
@@ -876,7 +876,7 @@ export default ({ pours = true }: { pours?: boolean }) => (
         [3.4, 1.3], [1.6, 0.7],
       ])}
     />
-    <trace from=".U5 > .QSTRT" to=".U5 > .EP" pcbPath={[]} />
+    <trace from=".U5 > .QSTRT" to=".U5 > .EP" pcbPath={[".U5 > .EP"]} />
     {/* Fuel gauge alert to U1.IO10: under the pull-ups, then inner1 below U1's
         pad row and up between IO10 and the DRDY via */}
     <trace
@@ -1129,20 +1129,20 @@ export default ({ pours = true }: { pours?: boolean }) => (
       to=".C12 > .pin1"
       pcbPath={boardPath([-3.2, -2.88, 0], [[-3.95, -0.6], [-4.49, -0.22]])}
     />
-    <trace from=".C12 > .pin1" to=".R7 > .pin1" pcbPath={[]} />
+    <trace from=".C12 > .pin1" to=".R7 > .pin1" pcbPath={[".R7 > .pin1"]} />
     <trace
       from=".U3 > .AIN1"
       to=".C12 > .pin2"
       pcbPath={boardPath([-3.2, -2.88, 0], [[-5.51, -1.6]])}
     />
-    <trace from=".C12 > .pin2" to=".R8 > .pin1" pcbPath={[]} />
+    <trace from=".C12 > .pin2" to=".R8 > .pin1" pcbPath={[".R8 > .pin1"]} />
     <trace
       from=".U3 > .REFP0"
       to=".C14 > .pin1"
       thickness="0.25mm"
       pcbPath={boardPath([-3.2, -2.88, 0], [[-5.4, -2.63]])}
     />
-    <trace from=".C14 > .pin1" to=".R22 > .pin2" thickness="0.25mm" pcbPath={[]} />
+    <trace from=".C14 > .pin1" to=".R22 > .pin2" thickness="0.25mm" pcbPath={[".R22 > .pin2"]} />
     {/* C14's GND pad is boxed in by LC_EP: a via below it, to D4's GND pad */}
     <trace
       from=".C14 > .pin2"

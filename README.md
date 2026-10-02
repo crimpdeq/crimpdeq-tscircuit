@@ -155,7 +155,9 @@ arm64, which CI uses, and a Linux x64 build of the same design routes differentl
 Run the search and accept routings on macOS.
 
 The buck power copper, the 3V3 trunk and the USB-area GND returns are `<trace>`
-elements with `pcbPath` (`pcbPath={[]}` for a straight line between pad centers).
+elements with `pcbPath` (`pcbPath={[toPort]}` for a straight line between pad
+centers; core fixes only traces with a non-empty `pcbPath`, and the router crossed
+`pcbPath={[]}` ones).
 `pcbStraightLine` ends traces at the pad edge, and tscircuit then attaches the end to
 whichever pad covers that point on any layer (here U1's pads on the top side).
 Routing on only three layers (all of inner2 reserved) left the board unroutable,
