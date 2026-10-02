@@ -240,6 +240,27 @@ export default ({ pours = true }: { pours?: boolean }) => (
         { x: 0.75, y: -0.697 },
       ]}
     />
+    {/* VBUS_IN on the top side, clear of J2's locating holes (the router passed
+        them at 0.035 mm): A4B9 to the ESD diode, over the ESD diodes to B4A9
+        (between D10 and its GND return) and on to D8 */}
+    <trace
+      from=".J2 > .A4B9"
+      to=".D9 > .pin1"
+      thickness="0.3mm"
+      pcbPath={[...boardPath([0, J2_Y, 0], [[-2.4, -8.3], [-1.85, -7.2]]), ".D9 > .pin1"]}
+    />
+    <trace
+      from=".D9 > .pin1"
+      to=".J2 > .B4A9"
+      thickness="0.3mm"
+      pcbPath={[...boardPath([-2.6, -6.603, 180], [[-1.85, -5.9], [2.6, -5.9], [2.6, -8.4]]), ".J2 > .B4A9"]}
+    />
+    <trace
+      from=".J2 > .B4A9"
+      to=".D8 > .anode"
+      thickness="0.3mm"
+      pcbPath={[...boardPath([0, J2_Y, 0], [[2.6, -8.4], [2.6, -5.9], [5.0, -5.9]]), ".D8 > .anode"]}
+    />
     {/* Reverse/backfeed blocking between the USB connector and VBUS */}
     <B5819WS
       name="D8"
@@ -295,6 +316,9 @@ export default ({ pours = true }: { pours?: boolean }) => (
       footprint="0603"
       {...part(PARTS.C4u7_0603)}
       layer="bottom"
+      // also the VBAT junction to the battery pad (hand-routed, 6.6 mm); core
+      // otherwise limits capacitor traces to 1 mm and skips autorouting
+      maxDecouplingTraceLength="7mm"
       pcbX={1.8}
       pcbY={-14.8}
       pcbRotation={180}
@@ -373,6 +397,17 @@ export default ({ pours = true }: { pours?: boolean }) => (
         BAT_N: "net.GND",
       }}
     />
+
+    {/* VBAT from the battery pad to the charger output by hand: 0.2 mm through
+        the gap between R2/R3 and C6's GND pad (the router put a via 0.03 mm
+        from that pad) */}
+    <trace
+      from=".C6 > .pin1"
+      to=".J4 > .pin3"
+      thickness="0.2mm"
+      pcbPath={[...boardPath([1.8, -14.8, 180], [[1.2, -14.08], [4.0, -14.08], [4.8, -12.2]]), ".J4 > .pin3"]}
+    />
+    <trace from=".C6 > .pin1" to=".U2 > .VBAT" thickness="0.3mm" pcbPath={[".U2 > .VBAT"]} />
 
     {/* ---------------- Power path ---------------- */}
     <B5819WS
