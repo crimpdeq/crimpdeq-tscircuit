@@ -83,7 +83,7 @@ const GND_VIAS: [number, number][] = [
   [-0.9875, 3.4125], [0.9875, 3.4125], [-0.9875, 5.3875], [0.9875, 5.3875],
   [-3.53, 1.7], [-2.05, 1.4], [-3.2, -5.5],
   [3.95, 6.4], [3.95, 7.65],
-  [-7.5, 7.5], [-7.5, 2.5], [-7.5, 1], [-7.5, -1.5], [-7, -5], [-5.5, -8.5], [-5.5, -11.5], [-5.5, -14.5],
+  [-7.5, 7.5], [-7.5, 2.5], [-7.5, 1], [-7.5, -1.5], [-5.5, -8.5], [-5.5, -11.5], [-5.5, -14.5],
   [7.5, 3], [7.5, 0.5], [7, -1], [7.5, -3], [7.5, -6.5], [5.5, -9.5], [5.5, -13], [7.5, -14.5],
   [-2, -11.5], [2, -11.5], [0, -7.5], [-0.5, -4.4], [-4, -8], [4.5, -8],
 ]
@@ -805,6 +805,9 @@ export default ({ pours = true }: { pours?: boolean }) => (
       capacitance="100nF"
       footprint="0402"
       {...part(PARTS.C100n)}
+      // fed from D4.VDD between the LED pads (hand-routed, 2.5 mm); core
+      // otherwise limits capacitor traces to 1 mm and skips autorouting
+      maxDecouplingTraceLength="3mm"
       pcbX={-6.3}
       pcbY={-5.256}
       pcbRotation={180}
@@ -1130,14 +1133,14 @@ export default ({ pours = true }: { pours?: boolean }) => (
     {/* Load cell lines to J3 by hand. Two per layer so they don't cross: on the
         bottom S- along the board edge, left of the E+ and S+ holes (0.127 mm
         trace, 0.136 mm to the holes and the edge band), and E- right of them;
-        on inner1 E+ between the C14 and (-7, -5) GND vias, and S+ right of it. */}
+        on inner1 E+ along the board edge, and S+ right of it. */}
     <trace
       from=".R22 > .pin2"
       to=".J3 > .pin1"
       thickness="0.25mm"
       pcbPath={boardPath([-7.32, -2.88, 270], [
         [-6.9, -1.85], [-6.9, -1.85, "bottom", "inner1"], [-6.9, -1.85],
-        [-6.9, -4.3], [-6.6, -4.6], [-6.35, -5.3], [-6.35, -6.4],
+        [-7.55, -2.6], [-7.55, -6.6],
       ])}
     />
     <trace
@@ -1254,12 +1257,34 @@ export default ({ pours = true }: { pours?: boolean }) => (
       pcbPath={boardPath([-3.2, -2.88, 0], [[-5.4, -2.63]])}
     />
     <trace from=".C14 > .pin1" to=".R22 > .pin2" thickness="0.25mm" pcbPath={[".R22 > .pin2"]} />
-    {/* C14's GND pad is boxed in by LC_EP: a via below it, to D4's GND pad */}
+    {/* RGB LED corner by hand: its supply between D4's pad columns down to C19,
+        and the data from R13 through a via and up D4's right side (the
+        router shorted the two here). */}
+    <trace
+      from=".D4 > .VDD"
+      to=".C19 > .pin1"
+      thickness="0.25mm"
+      pcbPath={[...boardPath([-6.4, -3.279, 0], [[-6.4, -2.78], [-6.4, -4.6]]), ".C19 > .pin1"]}
+    />
+    <trace
+      from=".R13 > .pin2"
+      to=".D4 > .DIN"
+      pcbPath={[
+        ...boardPath([-4.3, -6.869, 0], [
+          [-4.81, -6.2], [-4.81, -6.2, "bottom", "top"], [-4.81, -6.2],
+          [-4.85, -4.9], [-4.85, -3.78],
+        ]),
+        ".D4 > .DIN",
+      ]}
+    />
+    {/* C14's GND pad is boxed in by LC_EP: a via at (-7, -5), which also
+        stitches the GND planes there, to D4's GND pad */}
     <trace
       from=".C14 > .pin2"
       to=".D4 > .GND"
       pcbPath={boardPath([-6.37, -2.88, 90], [
-        [-6.37, -4.1], [-6.37, -4.1, "bottom", "top"], [-6.37, -4.1],
+        [-7.0, -4.2], [-7.0, -5.0], [-7.0, -5.0, "bottom", "top"], [-7.0, -5.0],
+        [-7.27, -4.3],
       ])}
     />
     <trace
