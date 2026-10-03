@@ -48,12 +48,20 @@ const pcbChecks = [
   "checkPcbTracesOutOfBoard",
   "checkViasOffBoard",
   "checkViasInPads",
+  "checkHoleTraceClearance",
+  "checkDanglingTraces",
+  "checkPcbTraceSelfShorts",
   "checkCopperToBoardEdgeClearance",
   "checkPcbCopperOverKeepout",
+  "checkPcbCourtyardOverKeepout",
   "checkPcbComponentOverlap",
   "checkPcbComponentsOutOfBoard",
   "checkConnectorAccessibleOrientation",
 ] as const
+
+// The board sets isViaInPadAllowed for C13's 3V3 via (index.circuit.tsx), which
+// turns checkViasInPads off; run it without that flag and allow only these pads
+const VIA_IN_PAD_ALLOWED = new Set(["C13.pin1"])
 
 let failures = 0
 
@@ -270,9 +278,14 @@ for (const name of pcbChecks) {
     continue
   }
   try {
-    const result = await fn(structuredClone(circuitJson))
+    const input = structuredClone(circuitJson)
+    if (name === "checkViasInPads")
+      for (const e of input) if (e.type === "pcb_board") delete e.is_via_in_pad_allowed
+    const result = await fn(input)
     const issues = (Array.isArray(result) ? result : []).filter(
-      (e: any) => !String(e.type).endsWith("_warning"),
+      (e: any) =>
+        !String(e.type).endsWith("_warning") &&
+        !(name === "checkViasInPads" && VIA_IN_PAD_ALLOWED.has(String(e.message).match(/ pad (\S+) at /)?.[1] ?? "")),
     )
     const warnings = (Array.isArray(result) ? result : []).filter((e: any) =>
       String(e.type).endsWith("_warning"),
