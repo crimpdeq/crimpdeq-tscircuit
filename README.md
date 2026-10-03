@@ -77,7 +77,10 @@ npm run fab      # PCBWay package in dist/fab/
 `scripts/drc.ts` runs every PCB check individually because the built-in DRC
 aborts when its copper-pour check crashes, and adds minimum trace width, inner2 GND
 plane and 3V3 supply topology checks (at most 3 mm of the buck -> U1 3V3 path below
-0.25 mm). `scripts/netlist.py` and `scripts/routing.py` compare
+0.25 mm). The board sets `isViaInPadAllowed` for C13's 3V3 via, the only via whose
+drill overlaps a pad (there is no room for it between C13's pads); `scripts/drc.ts`
+runs `checkViasInPads` without that flag and fails any other via in a pad.
+`scripts/netlist.py` and `scripts/routing.py` compare
 connectivity and routed copper against `scripts/netlist.expected.json` and
 `scripts/routing.expected.json`.
 

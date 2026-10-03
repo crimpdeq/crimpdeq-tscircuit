@@ -79,13 +79,14 @@ const boardPath = (
 
 // GND stitching vias [x, y]: U1 EPAD grid (thermal and RF return; at the corners
 // where four squares meet, since the router fails on vias inside pads), the
-// ADS1220 bypass and AVSS returns, the buck, and the board edges
+// ADS1220 bypass and AVSS returns, the buck, and the board edges. Vias next to
+// a GND pad (C9, C18) touch it with their ring; their drill stays off the pad.
 const GND_VIAS: [number, number][] = [
   [-0.9875, 3.4125], [0.9875, 3.4125], [-0.9875, 5.3875], [0.9875, 5.3875],
   [-3.53, 1.7], [-2.05, 1.4], [-3.2, -5.5],
   [3.95, 6.4], [3.95, 7.65],
-  [-7.5, 7.5], [-6.9, 2.5], [-6.9, 1], [-5.5, -8.5], [-5.5, -11.5], [-5.5, -14.5],
-  [7.5, 3], [7.5, 0.5], [7, -1], [7.5, -3], [7.5, -6.5], [5.5, -9.5], [5.5, -13], [7.5, -14.5],
+  [-7.5, 7.75], [-6.9, 2.5], [-6.9, 1], [-5.5, -8.5], [-5.5, -11.5], [-5.5, -14.5],
+  [7.5, 3], [7.5, 0.5], [7.25, -1], [7.5, -3], [7.5, -6.5], [5.5, -9.5], [5.5, -13],
   [-2, -11.5], [2, -11.5], [0, -10.6], [-0.5, -4.4], [-4, -8], [4.5, -8],
 ]
 
@@ -113,6 +114,8 @@ export default ({ pours = true }: { pours?: boolean }) => (
     minViaEdgeToPadEdgeClearance="0.2mm"
     minViaHoleDiameter="0.3mm"
     minViaPadDiameter="0.5mm"
+    // Only C13's 3V3 via overlaps a pad; scripts/drc.ts fails any other
+    isViaInPadAllowed
     pcbStyle={{ viaPadDiameter: "0.5mm", viaHoleDiameter: "0.3mm" }}
   >
     <net name="GND" isGroundNet />
@@ -1294,7 +1297,9 @@ export default ({ pours = true }: { pours?: boolean }) => (
     <trace from=".C12 > .pin1" to=".R7 > .pin1" pcbPath={[".R7 > .pin1"]} />
     {/* AVDD/DVDD: to their bypass capacitors, which are joined, and from C13
         through a via in its 3V3 pad and inner1 to the 3V3 trunk at (-2, 2.6).
-        AIN0, DRDY and the GND pads of C11/C13 close this corner on the bottom.
+        AIN0, DRDY and the GND pads of C11/C13 close this corner on the bottom;
+        off the pad, the via fits only between the capacitors and U3, where 3V3
+        would reach the pins first. It is the board's only via in a pad.
         maxLength overrides core's automatic 1 mm limit for 100 nF bypass
         traces, which skips autorouting when a hand-routed one exceeds it. */}
     <trace
@@ -1357,13 +1362,13 @@ export default ({ pours = true }: { pours?: boolean }) => (
         ".D4 > .DIN",
       ]}
     />
-    {/* C14's GND pad is boxed in by LC_EP: a via at (-7, -5), which also
-        stitches the GND planes there, to D4's GND pad */}
+    {/* C14's GND pad is boxed in by LC_EP: a via at (-7, -4.75), which also
+        stitches the GND planes there and touches C19's GND pad, to D4's GND pad */}
     <trace
       from=".C14 > .pin2"
       to=".D4 > .GND"
       pcbPath={boardPath([-6.37, -2.88, 90], [
-        [-7.0, -4.2], [-7.0, -5.0], [-7.0, -5.0, "bottom", "top"], [-7.0, -5.0],
+        [-7.0, -4.2], [-7.0, -4.75], [-7.0, -4.75, "bottom", "top"], [-7.0, -4.75],
         [-7.0, -4.3],
       ])}
     />
