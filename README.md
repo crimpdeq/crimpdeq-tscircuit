@@ -185,6 +185,29 @@ it checked only between the pad and pour layers; built as through vias, they lan
 on pads on the other side (L1, C16, C17, C11, C12). Routing on only three layers (all
 of inner2 reserved) left the board unroutable.
 
+## Prompting AI agents
+
+Agents follow `AGENTS.md` and the vendored tscircuit skill. tscircuit's
+[prompting guide](https://docs.tscircuit.com/guides/circuit-generation/generating-circuit-boards-with-ai)
+is written for new boards; a prompt for a change to this one should state:
+
+- Goal: the change and why.
+- Scope: the parts, nets or board area, by reference designator or net name.
+- Parts: the manufacturer part number of new or changed parts.
+- Side effects: whether placement, routed copper or connectivity may change, and whether
+  to regenerate `dist/fab/`.
+- Done: `npm run verify` passes, plus anything to inspect (PCB image, DRC result).
+
+```text
+<Change> because <reason>.
+Affected: <reference designators, nets or board area>.
+New parts: <manufacturer part number> (LCSC <code> as a sourcing hint).
+May change: <placement | hand-written traces | generated routes | netlist | dist/fab/>.
+Keep fixed: <parts or traces that must not move or reroute>.
+Done when npm run verify passes; show the netlist and routing diffs before
+updating their baselines.
+```
+
 ## License
 
 This repository is source-available for personal and educational use only.
