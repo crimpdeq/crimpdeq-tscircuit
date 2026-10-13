@@ -4,7 +4,7 @@
 //   --json prints {errors: [{check, type, message, center}], crashed: [check]}
 import { readFileSync } from "node:fs"
 import * as checks from "@tscircuit/checks"
-import { GND_PLANE_LAYER, GND_PLANE_REGIONS } from "../lib/gndPlane"
+import { GND_PLANE_REGIONS } from "../lib/gndPlane"
 
 const json = process.argv.includes("--json")
 const file = process.argv.slice(2).find((a) => !a.startsWith("--")) ?? "dist/index/circuit.json"
@@ -137,7 +137,7 @@ const MIN_TRACE_WIDTH = 0.127
   report("minTraceWidth", issues)
 }
 
-// Solid GND regions on inner2 (lib/gndPlane.ts): no copper from other nets.
+// Solid GND regions on the inner layers (lib/gndPlane.ts): no copper from other nets.
 // The unbroken pours keep the router out; this guards against that changing.
 {
   const netNames = new Map(
@@ -180,9 +180,10 @@ const MIN_TRACE_WIDTH = 0.127
     if (net === "GND") continue
     search: for (let k = 1; k < t.route.length; k++) {
       const [a, b] = [t.route[k - 1], t.route[k]]
-      if (a.route_type !== "wire" || b.route_type !== "wire" || a.layer !== GND_PLANE_LAYER) continue
+      if (a.route_type !== "wire" || b.route_type !== "wire") continue
       // copper overlaps the region: an end inside, or the edge within half a width
-      for (const [region, poly] of Object.entries(GND_PLANE_REGIONS)) {
+      for (const [region, { layer, outline: poly }] of Object.entries(GND_PLANE_REGIONS)) {
+        if (a.layer !== layer) continue
         let hit: Point | undefined = inside(a, poly) ? a : inside(b, poly) ? b : undefined
         for (let i = 0, j = poly.length - 1; !hit && i < poly.length; j = i++) {
           const c = closest(a, b, poly[j], poly[i])
@@ -191,7 +192,7 @@ const MIN_TRACE_WIDTH = 0.127
         if (hit) {
           issues.push({
             type: "trace_in_gnd_plane",
-            message: `${t.pcb_trace_id} (${net ?? "?"}) runs on ${GND_PLANE_LAYER} through the ${region} GND plane at (${hit.x.toFixed(2)}, ${hit.y.toFixed(2)})`,
+            message: `${t.pcb_trace_id} (${net ?? "?"}) runs on ${layer} through the ${region} GND plane at (${hit.x.toFixed(2)}, ${hit.y.toFixed(2)})`,
             center: { x: hit.x, y: hit.y },
           })
           break search
@@ -202,6 +203,19 @@ const MIN_TRACE_WIDTH = 0.127
   report("gndPlaneRegions", issues)
 }
 
+// Trace ends as "R1.pin2" names
+const sourceNames = new Map(
+  circuitJson.filter((e: any) => e.type === "source_component").map((e: any) => [e.source_component_id, e.name]),
+)
+const sourcePorts = new Map(circuitJson.filter((e: any) => e.type === "source_port").map((e: any) => [e.source_port_id, e]))
+const pcbPorts = new Map(circuitJson.filter((e: any) => e.type === "pcb_port").map((e: any) => [e.pcb_port_id, e]))
+const portName = (id: string) => {
+  const sp: any = sourcePorts.get((pcbPorts.get(id) as any)?.source_port_id)
+  return sp ? `${sourceNames.get(sp.source_component_id)}.${sp.name}` : id
+}
+const traceEnds = (t: any): string[] =>
+  t.route.flatMap((p: any) => [p.start_pcb_port_id, p.end_pcb_port_id]).filter(Boolean).map(portName)
+
 // 3V3 supply topology. The router joins each pad to its nearest same-net pad, so
 // placement decides where currents flow; every re-route can change it. The RGB
 // LED link (R24) must reach the buck without passing the ADS1220 supply pins or
@@ -209,19 +223,10 @@ const MIN_TRACE_WIDTH = 0.127
 // 3V3 path is hand-routed at 0.4 mm up to C1; the router narrows V3_3 below its
 // 0.25 mm width, so at most MAX_NARROW_3V3 mm of the path may be narrower.
 {
-  const sourceNames = new Map(
-    circuitJson.filter((e: any) => e.type === "source_component").map((e: any) => [e.source_component_id, e.name]),
-  )
-  const sourcePorts = new Map(circuitJson.filter((e: any) => e.type === "source_port").map((e: any) => [e.source_port_id, e]))
-  const pcbPorts = new Map(circuitJson.filter((e: any) => e.type === "pcb_port").map((e: any) => [e.pcb_port_id, e]))
-  const portName = (id: string) => {
-    const sp: any = sourcePorts.get((pcbPorts.get(id) as any)?.source_port_id)
-    return sp ? `${sourceNames.get(sp.source_component_id)}.${sp.name}` : id
-  }
   type Edge = { to: string; narrow: number; wide: number; vias: number }
   const graph = new Map<string, Edge[]>()
   for (const t of circuitJson.filter((e: any) => e.type === "pcb_trace")) {
-    const ends = t.route.flatMap((p: any) => [p.start_pcb_port_id, p.end_pcb_port_id]).filter(Boolean).map(portName)
+    const ends = traceEnds(t)
     if (ends.length !== 2) continue
     let [narrow, wide] = [0, 0]
     for (let k = 1; k < t.route.length; k++) {
@@ -269,6 +274,39 @@ const MIN_TRACE_WIDTH = 0.127
   log(
     `       buck -> U1 3V3: ${sum("narrow").toFixed(1)} mm below 0.25 mm, ${sum("wide").toFixed(1)} mm at 0.25 mm or wider, ${sum("vias")} vias`,
   )
+}
+
+// USB D-/D+ pair (index.circuit.tsx): from the ESD diodes to U1 on the same
+// layers through the same number of vias, with matched lengths
+{
+  const MAX_USB_SKEW = 0.5 // mm
+  const run = (from: string, to: string) => {
+    const t = circuitJson.find((e: any) => e.type === "pcb_trace" && traceEnds(e).sort().join() === [from, to].sort().join())
+    if (!t) return undefined
+    let length = 0
+    const layers: string[] = []
+    for (let k = 1; k < t.route.length; k++) {
+      const [a, b] = [t.route[k - 1], t.route[k]]
+      if (a.route_type === "wire" && b.route_type === "wire") length += Math.hypot(b.x - a.x, b.y - a.y)
+      if (b.route_type === "wire" && layers.at(-1) !== b.layer) layers.push(b.layer)
+    }
+    return { length, layers: layers.join(" > ") }
+  }
+  const dm = run("D7.pin1", "U1.IO18")
+  const dp = run("D10.pin1", "U1.IO19")
+  const issues: Issue[] = []
+  if (!dm || !dp) issues.push({ type: "usb_pair_missing", message: "no D7 -> U1.IO18 or D10 -> U1.IO19 trace" })
+  else {
+    if (dm.layers !== dp.layers)
+      issues.push({ type: "usb_pair_layers", message: `D- runs on ${dm.layers}, D+ on ${dp.layers}` })
+    if (Math.abs(dm.length - dp.length) > MAX_USB_SKEW)
+      issues.push({
+        type: "usb_pair_skew",
+        message: `D- ${dm.length.toFixed(2)} mm, D+ ${dp.length.toFixed(2)} mm (max difference ${MAX_USB_SKEW} mm)`,
+      })
+  }
+  report("usbPair", issues)
+  if (dm && dp) log(`       D- ${dm.length.toFixed(2)} mm, D+ ${dp.length.toFixed(2)} mm on ${dm.layers}`)
 }
 
 for (const name of pcbChecks) {

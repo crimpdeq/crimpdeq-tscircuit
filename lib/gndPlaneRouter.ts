@@ -7,8 +7,8 @@ import { SOLVERS } from "tscircuit"
 //   join the GND pads; drc.ts (checkEachPcbPortConnectedToPcbTraces) fails if
 //   any GND pad ends up on its own copper island. Routed, GND took half of the
 //   router's traces and most of its clearance errors.
-// - The pours are detached from GND, so they only keep other nets off inner2
-//   there. Attached, the router escaped nearby GND pads into them with vias
+// - The pours are detached from GND, so they only keep other nets off their
+//   layer there. Attached, the router escaped nearby GND pads into them with vias
 //   whose clearance it checked only between the pad and pour layers; drilled
 //   through all four layers, those vias landed on pads on the other side.
 // Core also turns the vias of hand-routed traces into obstacles on the layers

@@ -11,7 +11,7 @@ import { SY8088IAAC } from "./imports/SY8088IAAC"
 import { TYPE_C_31_M_12 } from "./imports/TYPE_C_31_M_12"
 import { XL_2121RGBC_2812B } from "./imports/XL_2121RGBC_2812B"
 import { WirePads } from "./lib/WirePads"
-import { GND_PLANE_LAYER, GND_PLANE_REGIONS } from "./lib/gndPlane"
+import { GND_PLANE_REGIONS } from "./lib/gndPlane"
 import { gndPlaneAutorouter } from "./lib/gndPlaneRouter"
 import { HAND_ROUTES } from "./lib/handRoutes"
 
@@ -79,15 +79,25 @@ const boardPath = (
 
 // GND stitching vias [x, y]: U1 EPAD grid (thermal and RF return; at the corners
 // where four squares meet, since the router fails on vias inside pads), the
-// ADS1220 bypass and AVSS returns, the buck, and the board edges. Vias next to
-// a GND pad (C9, C18) touch it with their ring; their drill stays off the pad.
+// ADS1220 bypass and AVSS returns, the buck, the USB pair's via pair, the bottom
+// pour between D2 and U5, and the board edges. Vias next to a GND pad (C9, C18)
+// touch it with their ring; their drill stays off the pad.
 const GND_VIAS: [number, number][] = [
   [-0.9875, 3.4125], [0.9875, 3.4125], [-0.9875, 5.3875], [0.9875, 5.3875],
   [-3.53, 1.7], [-2.05, 1.4], [-3.2, -5.5],
   [3.95, 6.4], [3.95, 7.65],
+  [5.25, -3.5], [3.55, -1.45],
   [-7.5, 7.75], [-6.9, 2.5], [-6.9, 1], [-5.5, -8.5], [-5.5, -11.5], [-5.5, -14.5],
-  [7.5, 3], [7.5, 0.5], [7.25, -1], [7.5, -3], [7.5, -6.5], [5.5, -9.5], [5.5, -13],
+  [7.5, 3], [7.5, 0.5], [7.3, -1], [7.5, -3], [7.5, -6.5], [5.5, -9.5], [5.5, -13],
   [-2, -11.5], [2, -11.5], [0, -10.6], [-0.5, -4.4], [-4, -8], [4.5, -8],
+]
+
+// Bottom-side recovery pads (TP1-TP3), in a row under U1
+const TEST_PAD_Y = 4.6
+const TEST_PADS = [
+  { name: "TP1", label: "EN", net: "net.CHIP_PU", x: -6.0 },
+  { name: "TP2", label: "GND", net: "net.GND", x: -4.5 },
+  { name: "TP3", label: "BOOT", net: "net.BOOT", x: -3.0 },
 ]
 
 const esp32GndPins = [
@@ -249,8 +259,11 @@ export default ({ pours = true }: { pours?: boolean }) => (
     />
     {/* USB by hand. CC1/CC2: a via above each pin to its pull-down. D-: B7
         and A7 meet at D7; D+: A6 and B6 meet through two vias, then B6 to D10.
-        From the ESD diodes D- runs on inner1 and D+ on inner2 up the east side
-        to vias right of U1's IO18/IO19 (VBUS_IN closes the top side). */}
+        From the ESD diodes D-/D+ run as a pair (0.15 mm at 0.3 mm pitch) on
+        inner1 (VBUS_IN closes the top side) up and east to a via pair below
+        U1's right pad column (U5 takes the bottom beside IO18/IO19), then on the
+        top side to the pins; solid GND under both runs (lib/gndPlane.ts). Going
+        up first leaves VBAT a way south on inner1; the lengths differ by 0.3 mm. */}
     <trace
       from=".J2 > .A5"
       to=".R19 > .pin1"
@@ -270,11 +283,13 @@ export default ({ pours = true }: { pours?: boolean }) => (
     <trace
       from=".D7 > .pin1"
       to=".U1 > .IO18"
+      thickness="0.15mm"
       pcbPath={[
         ...boardPath([0, -6.603, 0], [
           [-0.75, -7.25], [-0.75, -7.25, "top", "inner1"], [-0.75, -7.25],
-          [0.6, -6.6], [0.6, -2.4], [5.6, -2.4], [5.6, 1.2],
-          [7.6, 1.2], [7.6, 1.2, "inner1", "top"], [7.6, 1.2],
+          [-0.1, -6.6], [0.6, -6.6], [1.1, -6.1], [1.1, -3.05], [1.55, -2.6],
+          [5.6, -2.6], [5.95, -2.25], [5.95, -2.25, "inner1", "top"], [5.95, -2.25],
+          [6.505, -1.695], [6.505, 1.2],
         ]),
         ".U1 > .IO18",
       ]}
@@ -298,11 +313,13 @@ export default ({ pours = true }: { pours?: boolean }) => (
     <trace
       from=".D10 > .pin1"
       to=".U1 > .IO19"
+      thickness="0.15mm"
       pcbPath={[
         ...boardPath([2.6, -6.603, 0], [
-          [1.85, -7.2], [1.85, -7.2, "top", "inner2"], [1.85, -7.2],
-          [2.3, -6.7], [6.2, -6.7], [6.2, 2.0],
-          [7.6, 2.0], [7.6, 2.0, "inner2", "top"], [7.6, 2.0],
+          [1.85, -7.2], [1.85, -7.2, "top", "inner1"], [1.85, -7.2],
+          [1.4, -6.75], [1.4, -3.174], [1.674, -2.9], [5.35, -2.9], [5.45, -3.0],
+          [5.95, -3.0], [5.95, -3.0, "inner1", "top"], [5.95, -3.0],
+          [6.805, -2.145], [6.805, 2.0],
         ]),
         ".U1 > .IO19",
       ]}
@@ -752,6 +769,8 @@ export default ({ pours = true }: { pours?: boolean }) => (
         IO5: "net.ADC_SCLK",
         IO6: "net.I2C_SDA",
         IO7: "net.I2C_SCL",
+        IO8: "net.IO8_PU",
+        IO9: "net.BOOT",
         IO10: "net.FG_ALRT",
         IO18: "net.USB_DM",
         IO19: "net.USB_DP",
@@ -862,6 +881,57 @@ export default ({ pours = true }: { pours?: boolean }) => (
       schRotation={-90}
       connections={{ pin1: "net.CHIP_PU", pin2: "net.GND" }}
     />
+    {/* Download boot needs IO8 high while IO9 is low (ESP32-C3 strapping) */}
+    <resistor
+      name="R25"
+      resistance="10k"
+      footprint="0402"
+      {...part(PARTS.R10k)}
+      pcbX={2.8}
+      pcbY={-2.5}
+      pcbRotation={90}
+      schSectionName="mcu"
+      schX={-17.5}
+      schY={-6.5}
+      schRotation={-90}
+      connections={{ pin1: "net.V3_3", pin2: "net.IO8_PU" }}
+    />
+    {/* 3V3 from R24: the USB pair on inner1 below R25 leaves no room for a via */}
+    <trace from=".R25 > .pin1" to=".R24 > .pin1" thickness="0.25mm" pcbPath={[".R24 > .pin1"]} />
+    <trace from=".R25 > .pin2" to=".U1 > .IO8" thickness="0.15mm" pcbPath={[".U1 > .IO8"]} />
+    {/* Recovery pads on the bottom, under U1: hold BOOT (IO9) to GND and tap
+        EN to GND to enter download mode. Bare pads, 1.5 mm apart, so tweezers
+        bridge GND to either neighbour. */}
+    {TEST_PADS.map(({ name, net, x }, i) => (
+      <testpoint
+        key={name}
+        name={name}
+        footprintVariant="pad"
+        padShape="circle"
+        padDiameter="1mm"
+        doNotPlace
+        layer="bottom"
+        pcbX={x}
+        pcbY={TEST_PAD_Y}
+        // Reference designator under the function label (the BOOT via is above)
+        pcbSx={{ "& silkscreentext": { pcbY: -1.55 } }}
+        schSectionName="mcu"
+        schX={-15}
+        schY={-7 - 1.5 * i}
+        connections={{ pin1: net }}
+      />
+    ))}
+    {TEST_PADS.map(({ label, x }) => (
+      <silkscreentext
+        text={label}
+        layer="bottom"
+        pcbX={x}
+        pcbY={TEST_PAD_Y - 0.9}
+        anchorAlignment="center"
+        fontSize="0.5mm"
+      />
+    ))}
+    <trace from=".TP1 > .pin1" to=".R1 > .pin2" thickness="0.15mm" pcbPath={[".R1 > .pin2"]} />
 
     {/* ---------------- Indicators ---------------- */}
     <resistor
@@ -1473,21 +1543,10 @@ export default ({ pours = true }: { pours?: boolean }) => (
       <>
         <copperpour connectsTo="net.GND" layer="inner1" clearance="0.2mm" boardEdgeMargin="0.35mm" />
         <copperpour connectsTo="net.GND" layer="inner2" clearance="0.2mm" boardEdgeMargin="0.35mm" />
-        {/* Solid GND under the buck and the ADC: routing on inner2 is kept out */}
-        <copperpour
-          connectsTo="net.GND"
-          layer={GND_PLANE_LAYER}
-          clearance="0.2mm"
-          outline={GND_PLANE_REGIONS.buck}
-          unbroken
-        />
-        <copperpour
-          connectsTo="net.GND"
-          layer={GND_PLANE_LAYER}
-          clearance="0.2mm"
-          outline={GND_PLANE_REGIONS.adc}
-          unbroken
-        />
+        {/* Solid GND under the buck, the ADC and the USB pair: routing is kept out */}
+        {Object.values(GND_PLANE_REGIONS).map(({ layer, outline }) => (
+          <copperpour connectsTo="net.GND" layer={layer} clearance="0.2mm" outline={outline} unbroken />
+        ))}
         <copperpour connectsTo="net.GND" layer="top" clearance="0.2mm" boardEdgeMargin="0.35mm" />
         <copperpour connectsTo="net.GND" layer="bottom" clearance="0.2mm" boardEdgeMargin="0.35mm" />
       </>

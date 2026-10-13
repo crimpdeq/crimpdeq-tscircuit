@@ -2,13 +2,13 @@
 // nets listed in scripts/handroute.json one link at a time (pad to pad), in that
 // order, on a 0.05 mm grid over all four layers: 0.127 mm clearance to other
 // nets, vias 0.15 mm from pads, through vias that block every layer, clear of
-// keepouts, NPTH holes (0.2 mm) and the inner2 GND regions of lib/gndPlane.ts.
+// keepouts, NPTH holes (0.2 mm) and the inner-layer GND regions of lib/gndPlane.ts.
 // Paths are straightened where the clearance allows. Run scripts/handroute.sh,
 // which builds the board without these routes and without the autorouter first.
 // Usage: bun scripts/handroute.ts circuit.json scripts/handroute.json lib/handRoutes.ts
 //   task: { net, width, from?: ".X > .pin" (route from this pad's group), single?: true }
 import { readFileSync, writeFileSync } from "node:fs"
-import { GND_PLANE_LAYER, GND_PLANE_REGIONS } from "../lib/gndPlane"
+import { GND_PLANE_REGIONS } from "../lib/gndPlane"
 
 const [cjFile, tasksFile, outFile] = process.argv.slice(2)
 const cj: any[] = JSON.parse(readFileSync(cjFile, "utf8"))
@@ -99,10 +99,10 @@ for (const k of byType("pcb_keepout")) {
   if (k.shape === "rect") shapes.push({ net: "keepout", layers: k.layers, kind: "rect", x: k.center.x, y: k.center.y, w: k.width, h: k.height })
   else shapes.push({ net: "keepout-traces-ok", layers: k.layers, kind: "circle", x: k.center.x, y: k.center.y, r: k.radius })
 }
-for (const pts of Object.values(GND_PLANE_REGIONS)) {
+for (const { layer, outline: pts } of Object.values(GND_PLANE_REGIONS)) {
   const xs = pts.map((p) => p.x), ys = pts.map((p) => p.y)
   const [x0, x1, y0, y1] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)]
-  shapes.push({ net: "gnd-plane", layers: [GND_PLANE_LAYER], kind: "rect", x: (x0 + x1) / 2, y: (y0 + y1) / 2, w: x1 - x0, h: y1 - y0 })
+  shapes.push({ net: "gnd-plane", layers: [layer], kind: "rect", x: (x0 + x1) / 2, y: (y0 + y1) / 2, w: x1 - x0, h: y1 - y0 })
 }
 
 // signed distance from a point to a shape's edge
