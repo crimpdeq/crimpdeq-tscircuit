@@ -30,6 +30,10 @@
   "U1 IO5",
   "U3 SCLK"
  ],
+ "BOOT": [
+  "TP3 pin1",
+  "U1 IO9"
+ ],
  "BUCK_EN": [
   "R14 pin2",
   "U6 EN"
@@ -67,6 +71,7 @@
  "CHIP_PU": [
   "C3 pin1",
   "R1 pin2",
+  "TP1 pin1",
   "U1 EN"
  ],
  "FG_ALRT": [
@@ -106,6 +111,7 @@
   "R19 pin2",
   "R2 pin2",
   "R9 pin2",
+  "TP2 pin1",
   "U1 GND1",
   "U1 GND10",
   "U1 GND11",
@@ -156,6 +162,10 @@
   "R20 pin2",
   "U1 IO6",
   "U5 SDA"
+ ],
+ "IO8_PU": [
+  "R25 pin2",
+  "U1 IO8"
  ],
  "LC_EN": [
   "J3 E_N",
@@ -219,6 +229,7 @@
   "R22 pin1",
   "R23 pin2",
   "R24 pin1",
+  "R25 pin1",
   "U1 3V3",
   "U3 AVDD",
   "U3 DVDD"

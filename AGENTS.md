@@ -51,8 +51,10 @@ below override the skill where they conflict.
   router treated `pcbPath={[]}` traces as soft and routed across them.
 - A fixed trace to a power-to-ground capacitor longer than 1 mm makes core skip
   autorouting and fail the build: set `maxDecouplingTraceLength` on the capacitor.
-- inner2 is reserved for GND under the buck and the ADC (`lib/gndPlane.ts`);
-  reserving all of it left the board unroutable.
+- GND plane regions (`lib/gndPlane.ts`) reserve inner2 under the buck, the ADC
+  and the USB pair's inner1 run, and inner1 under its top-side run; reserving
+  all of inner2 left the board unroutable. The USB pair is hand-routed;
+  `scripts/drc.ts` (`usbPair`) checks its layers and length match.
 - The board autorouter is `lib/gndPlaneRouter.ts`, the stock solver with GND
   left to the pours and those pours detached from GND (see README);
   `GND_ROUTER_SKIP=1` turns it off. After a tscircuit upgrade, check that it still

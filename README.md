@@ -8,9 +8,10 @@ with the HX711 replaced by a TI ADS1220 24-bit ADC.
   USB-C (TYPE-C-31-M-12, flush with the opposite edge), USB ESD, both LEDs
 - Bottom: charger, power path, 3V3 buck, MAX17048, ADS1220 and passives
 - Stackup: GND pour on every layer; inner2 (next to the bottom side) is a solid GND
-  plane under the buck and the ADS1220 front end (`lib/gndPlane.ts`), and signals run
-  on the other layers and the rest of inner2. GND stitching vias at the module EPAD,
-  the ADS1220 bypass capacitors and AVSS, the buck and the board edges
+  plane under the buck, the ADS1220 front end and the USB pair's inner1 run, and inner1
+  under its top-side run (`lib/gndPlane.ts`); signals run on the other layers and the
+  rest of the inner layers. GND stitching vias at the module EPAD, the ADS1220 bypass
+  capacitors and AVSS, the buck, the USB pair's vias and the board edges
 - Design rules (PCBWay): 5/5 mil track/space, vias 0.3 mm drill / 0.5 mm pad,
   0.3 mm copper-to-edge
 
@@ -58,6 +59,16 @@ v2.0.0 names these the other way round: its `SW+` pad is the power-path input an
   trunk (v2.0.0 used up to 0.61 mm).
 - ESD diode and receptacle GND pads are tied by hand to the J2 GND pins, the shell legs
   and (D7) a via.
+- USB D-/D+ run as a pair (0.15 mm at 0.3 mm pitch) from the ESD diodes to IO18/IO19:
+  on inner1 over a solid inner2 GND region, then through a via pair below U1 and on the
+  top side over a solid inner1 region. The lengths differ by 0.3 mm; `scripts/drc.ts`
+  (`usbPair`) checks that both run on the same layers within 0.5 mm. No impedance
+  control is ordered: at USB full speed (12 Mbit/s) these 16 mm are electrically short.
+- Download-mode recovery: bottom-side pads under U1, EN (TP1), GND (TP2) and BOOT
+  (TP3, IO9), 1.5 mm apart. Hold BOOT to GND and tap EN to GND (tweezers bridge
+  neighbouring pads). With the battery switch off, plugging USB in is a power-on
+  reset, so holding BOOT while plugging in does the same. A 10 kΩ pull-up (R25)
+  holds IO8 high, which download mode needs.
 - The buck EN pull-up (R14) gets VSYS from U6.IN over inner1: on the bottom side the GND
   strap, U6 and L1 close U6.IN off from the feedback divider column.
 - All copper is fixed (see Routing): hand-written traces for the buck, the 3V3 trunk,
@@ -75,11 +86,12 @@ npm run fab      # PCBWay package in dist/fab/
 ```
 
 `scripts/drc.ts` runs every PCB check individually because the built-in DRC
-aborts when its copper-pour check crashes, and adds minimum trace width, inner2 GND
-plane and 3V3 supply topology checks (at most 3 mm of the buck -> U1 3V3 path below
-0.25 mm). The board sets `isViaInPadAllowed` for C13's 3V3 via, the only via whose
-drill overlaps a pad (there is no room for it between C13's pads); `scripts/drc.ts`
-runs `checkViasInPads` without that flag and fails any other via in a pad.
+aborts when its copper-pour check crashes, and adds minimum trace width, inner-layer
+GND plane, 3V3 supply topology (at most 3 mm of the buck -> U1 3V3 path below
+0.25 mm) and USB pair checks. The board sets `isViaInPadAllowed` for C13's 3V3 via,
+the only via whose drill overlaps a pad (there is no room for it between C13's pads);
+`scripts/drc.ts` runs `checkViasInPads` without that flag and fails any other via in
+a pad.
 `scripts/netlist.py` and `scripts/routing.py` compare
 connectivity and routed copper against `scripts/netlist.expected.json` and
 `scripts/routing.expected.json`.
@@ -145,12 +157,12 @@ All copper is fixed; the autorouter has nothing left to route.
 - Traces with a layout intent are written by hand in `index.circuit.tsx` (see the
   design changes above).
 - The other nets (VSYS, VBUS, VBAT, the rest of 3V3, the SPI clock and data, CS,
-  LED data, CHIP_PU, S-) are generated into `lib/handRoutes.ts` by
+  LED data, CHIP_PU, BOOT, S-) are generated into `lib/handRoutes.ts` by
   `scripts/handroute.sh`. It builds the board without them and without the
   autorouter (`GND_ROUTER_SKIP=1`), then `scripts/handroute.ts` routes the nets in
   `scripts/handroute.json`, in that order, on a 0.05 mm grid over the four layers:
   0.127 mm to other nets, vias 0.15 mm from pads, through vias that block every
-  layer, and inner2 kept clear in the GND plane regions.
+  layer, and the GND plane regions kept clear.
 
 After a change to placement, footprints or the hand-written traces:
 
@@ -179,7 +191,7 @@ vias it checked on only some of the layers they cross. `scripts/search.py` (nudg
 passives until the board routes clean) and its output depending on the platform
 (macOS arm64 against Linux x64) only matter again if nets are left to it.
 `lib/gndPlaneRouter.ts` keeps it in place: the stock solver with GND removed and the
-`unbroken` inner2 GND pours detached from GND, so they only keep other nets out.
+`unbroken` inner-layer GND pours detached from GND, so they only keep other nets out.
 Attached, the router escaped nearby GND pads into the pour with vias whose clearance
 it checked only between the pad and pour layers; built as through vias, they landed
 on pads on the other side (L1, C16, C17, C11, C12). Routing on only three layers (all
