@@ -1,11 +1,15 @@
 {
  "ADC_AIN0": [
   "C12 pin1",
+  "C20 pin1",
+  "C22 pin1",
   "R7 pin1",
   "U3 AIN0"
  ],
  "ADC_AIN1": [
   "C12 pin2",
+  "C21 pin1",
+  "C23 pin1",
   "R8 pin1",
   "U3 AIN1"
  ],
@@ -89,6 +93,10 @@
   "C18 pin2",
   "C19 pin2",
   "C2 pin2",
+  "C20 pin2",
+  "C21 pin2",
+  "C22 pin2",
+  "C23 pin2",
   "C3 pin2",
   "C4 pin2",
   "C5 pin2",
@@ -179,12 +187,20 @@
   "U3 REFP0"
  ],
  "LC_SN": [
-  "J3 S_N",
+  "FB2 pin2",
   "R8 pin2"
  ],
+ "LC_SN_J3": [
+  "FB2 pin1",
+  "J3 S_N"
+ ],
  "LC_SP": [
-  "J3 S_P",
+  "FB1 pin2",
   "R7 pin2"
+ ],
+ "LC_SP_J3": [
+  "FB1 pin1",
+  "J3 S_P"
  ],
  "LED_DATA": [
   "R13 pin1",

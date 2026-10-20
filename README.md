@@ -5,7 +5,8 @@ with the HX711 replaced by a TI ADS1220 24-bit ADC.
 
 - Board: 17 × 31.5 mm, 4 layers, components on both sides (v2.0.0: 23 × 63.8 mm, 2 layers)
 - Top: ESP32-C3-MINI-1 (antenna at the board edge, copper keepout on all layers),
-  USB-C (TYPE-C-31-M-12, flush with the opposite edge), USB ESD, both LEDs
+  USB-C (TYPE-C-31-M-12, flush with the opposite edge), USB ESD, both LEDs, load cell
+  ferrites (FB1, FB2)
 - Bottom: charger, power path, 3V3 buck, MAX17048, ADS1220 and passives
 - Stackup: GND pour on every layer; inner2 (next to the bottom side) is a solid GND
   plane under the buck, the ADS1220 front end and the USB pair's inner1 run, and inner1
@@ -25,7 +26,7 @@ with the HX711 replaced by a TI ADS1220 24-bit ADC.
 | AVSS, DGND, CLK, EP | GND |
 | SCLK / DIN / DOUT/DRDY / CS | GPIO5 / GPIO4 / GPIO1 / GPIO3, CS pulled up to 3V3 (100 kΩ) |
 | DRDY | GPIO0 |
-| AIN0 / AIN1 | load cell S+ / S− through 1 kΩ each, 10 nF C0G differential (~8 kHz) |
+| AIN0 / AIN1 | load cell S+ / S− through a GHz ferrite (FB1/FB2, at J3) and 1 kΩ each, 10 nF C0G differential (~8 kHz), 22 pF and 1 nF C0G to GND each |
 | AIN2 | not connected |
 
 The bridge is powered only while the low-side switch is closed: firmware must set
@@ -35,6 +36,7 @@ ratiometric across R22 and the switch.
 
 Wire pads: J3 `E+ S+ S- E-` (E+ = filtered 3V3, E− = low-side switch), J4 `SW- SW+ B+ B-` (SW+ = B+, SW− = power-path input).
 v2.0.0 names these the other way round: its `SW+` pad is the power-path input and `VBAT` is the battery.
+J3's labels are on the bottom side only: FB1/FB2 sit next to its pads on the top side.
 
 ## Changes vs v2.0.0 beyond the ADC
 
@@ -69,11 +71,19 @@ v2.0.0 names these the other way round: its `SW+` pad is the power-path input an
   neighbouring pads). With the battery switch off, plugging USB in is a power-on
   reset, so holding BOOT while plugging in does the same. A 10 kΩ pull-up (R25)
   holds IO8 high, which download mode needs.
+- RF filtering of the load cell inputs against BLE TX pickup (#23): on the KiCad
+  revision-3 board, BLE transmissions add spikes of up to 0.98 kg that enter at AIN0/AIN1.
+  Each input has, between its 1 kΩ resistor and the pin, 22 pF C0G to GND (self-resonant
+  near 2.4 GHz; C20, C21) and 1 nF C0G common-mode to GND (C22, C23, a tenth of C12),
+  and S+/S− have GHz ferrites (BLM15HG102SN1D, FB1, FB2) at J3. Vias can't go under
+  U1's left pad column, so AIN0's capacitors return to C11's GND via and AIN1's to U1's
+  GND20 pad (C21, through a via) and C3's GND pad (C23). S+/S− run side by side on
+  inner1, 0.35 mm apart from beside U3 down to the ferrites.
 - The buck EN pull-up (R14) gets VSYS from U6.IN over inner1: on the bottom side the GND
   strap, U6 and L1 close U6.IN off from the feedback divider column.
 - All copper is fixed (see Routing): hand-written traces for the buck, the 3V3 trunk,
   the USB and ESD fan-out, the charger signals, U5's I2C and alert, the ADS1220 fan-out,
-  front end and supply, three load cell lines and the RGB LED corner; generated routes
+  front end and supply, the load cell lines and the RGB LED corner; generated routes
   for the other nets.
 
 ## Verify
@@ -157,7 +167,7 @@ All copper is fixed; the autorouter has nothing left to route.
 - Traces with a layout intent are written by hand in `index.circuit.tsx` (see the
   design changes above).
 - The other nets (VSYS, VBUS, VBAT, the rest of 3V3, the SPI clock and data, CS,
-  LED data, CHIP_PU, BOOT, S-) are generated into `lib/handRoutes.ts` by
+  LED data, CHIP_PU, BOOT) are generated into `lib/handRoutes.ts` by
   `scripts/handroute.sh`. It builds the board without them and without the
   autorouter (`GND_ROUTER_SKIP=1`), then `scripts/handroute.ts` routes the nets in
   `scripts/handroute.json`, in that order, on a 0.05 mm grid over the four layers:
