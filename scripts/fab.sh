@@ -27,6 +27,11 @@ fi
 # Name the drill files by plating, as KiCad does
 mv "$tmp/gerbers/drill-L1-L4.drl" "$tmp/gerbers/drill-PTH.drl"
 mv "$tmp/gerbers/drill_npth.drl" "$tmp/gerbers/drill-NPTH.drl"
+# A standard 4-layer order has through holes only (scripts/patch-core.mjs)
+if ls "$tmp/gerbers"/drill-L*.drl 2>/dev/null; then
+  echo "fab: blind/buried via drill files above; every via must be a through via" >&2
+  exit 1
+fi
 (cd "$tmp/gerbers" && zip -q "$tmp/pcbway_gerbers.zip" ./*)
 mv "$tmp/pcbway_gerbers.zip" "$out/pcbway_gerbers.zip"
 
