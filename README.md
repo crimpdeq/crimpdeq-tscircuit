@@ -98,7 +98,7 @@ npm run fab      # PCBWay package in dist/fab/
 `scripts/drc.ts` runs every PCB check individually because the built-in DRC
 aborts when its copper-pour check crashes, and adds minimum trace width, inner-layer
 GND plane, 3V3 supply topology (at most 3 mm of the buck -> U1 3V3 path below
-0.25 mm) and USB pair checks. The board sets `isViaInPadAllowed` for C13's 3V3 via,
+0.25 mm), USB pair and through-via checks. The board sets `isViaInPadAllowed` for C13's 3V3 via,
 the only via whose drill overlaps a pad (there is no room for it between C13's pads);
 `scripts/drc.ts` runs `checkViasInPads` without that flag and fails any other via in
 a pad.
@@ -113,6 +113,14 @@ every plated hole on both sides, and leaves floating pour copper. It also
 unrotates the pads at multiples of 90° (size swapped): tscircuit flashes rounded
 rotated pads with a `%LR` load rotation that some CAM tools ignore, and `npm run fab`
 fails if any `%LR` is left.
+
+Every via is a through via: the board is ordered as a standard 4-layer stackup.
+tscircuit core gives vias in fixed traces (non-empty `pcbPath`) only the layers they
+join, which exports blind/buried drill files with GND pour over their drill on the
+other layers; `scripts/patch-core.mjs` (run on install) gives them all layers, as
+core already does for autorouted vias. `scripts/drc.ts` (`throughVias`) fails on
+any via that doesn't span all layers, and `npm run fab` fails on any drill file
+besides `drill-PTH.drl` and `drill-NPTH.drl`.
 
 ## Online viewer
 

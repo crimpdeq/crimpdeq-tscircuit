@@ -276,6 +276,21 @@ const traceEnds = (t: any): string[] =>
   )
 }
 
+// Every via is a through via: the board is ordered as a standard 4-layer stackup,
+// so a blind/buried via would be drilled through copper of other layers.
+// scripts/patch-core.mjs makes core give vias in fixed traces all layers.
+{
+  const layerCount = circuitJson.find((e: any) => e.type === "pcb_board")?.num_layers ?? 4
+  const issues: Issue[] = circuitJson
+    .filter((e: any) => e.type === "pcb_via" && (e.layers ?? []).length !== layerCount)
+    .map((e: any) => ({
+      type: "via_not_through",
+      message: `${e.pcb_via_id} at (${e.x.toFixed(2)}, ${e.y.toFixed(2)}) spans ${(e.layers ?? []).join("-")}`,
+      center: { x: e.x, y: e.y },
+    }))
+  report("throughVias", issues)
+}
+
 // USB D-/D+ pair (index.circuit.tsx): from the ESD diodes to U1 on the same
 // layers through the same number of vias, with matched lengths
 {

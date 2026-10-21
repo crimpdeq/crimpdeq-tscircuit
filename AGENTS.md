@@ -10,9 +10,13 @@ below override the skill where they conflict.
   `node_modules/.bin`. TypeScript 7 breaks `tsci`.
 - Dependencies are pinned exactly (`package.json` + `bun.lock`); install with
   `bun install --frozen-lockfile`. Upgrading tscircuit can change routing and
-  break `scripts/patch-viewer.mjs`: re-run the search and verify afterwards.
+  break `scripts/patch-viewer.mjs` and `scripts/patch-core.mjs`: re-run the
+  search and verify afterwards.
 - `npm install` runs `scripts/patch-viewer.mjs`, which patches the browser
-  viewer's hover labels. If it fails after a tscircuit update, update its patterns.
+  viewer's hover labels, and `scripts/patch-core.mjs`, which makes core give
+  vias in fixed traces all layers (unpatched, they are blind/buried and other
+  layers' copper covers their drill). If either fails after a tscircuit update,
+  update its patterns.
 
 ## Verification
 
