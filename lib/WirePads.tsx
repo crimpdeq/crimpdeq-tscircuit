@@ -5,18 +5,20 @@ type WirePad = { label: string; silk: string }
 
 /**
  * Vertical column of plated wire-solder pads, pin1 at the top. Each pad gets a
- * silkscreen label on both sides, offset horizontally by `silkOffsetX`. Bare
- * pads, so they are excluded from assembly.
+ * silkscreen label on `silkLayers` (both sides by default), offset horizontally
+ * by `silkOffsetX`. Bare pads, so they are excluded from assembly.
  */
 export const WirePads = ({
   pads,
   pitch = 2.2,
   silkOffsetX = 1.6,
+  silkLayers = ["top", "bottom"],
   ...props
 }: Omit<ConnectorProps, "pinLabels" | "footprint"> & {
   pads: WirePad[]
   pitch?: number
   silkOffsetX?: number
+  silkLayers?: ("top" | "bottom")[]
 }) => {
   const top = ((pads.length - 1) * pitch) / 2
   const pinLabels = Object.fromEntries(
@@ -42,17 +44,18 @@ export const WirePads = ({
               />
             </Fragment>
           ))}
+          {/* 0.1 mm around the pads: J3 leaves room for FB1/FB2 next to J2 */}
           <courtyardrect
             pcbX={0}
             pcbY={0}
-            width={2}
-            height={(pads.length - 1) * pitch + 2}
+            width={1.7}
+            height={(pads.length - 1) * pitch + 1.7}
           />
           {pads.map((pad, i) => (
             <Fragment key={`${pad.label}-silk`}>
               <silkscreentext
                 text={pad.silk}
-                layers={["top", "bottom"]}
+                layers={silkLayers}
                 pcbX={silkOffsetX}
                 pcbY={top - i * pitch}
                 anchorAlignment="center"

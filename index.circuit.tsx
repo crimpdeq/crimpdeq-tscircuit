@@ -48,12 +48,15 @@ const PARTS = {
   C22p: { mpn: "0402CG220J500NT", lcsc: "C1555" },
   C10n: { mpn: "CL05B103KB5NNNC", lcsc: "C15195" },
   C10n_C0G: { mpn: "GRM1555C1E103JE01D", lcsc: "C3855387" },
+  C1n_C0G: { mpn: "GRM1555C1H102JA01D", lcsc: "C76947" },
   C100n: { mpn: "CL05B104KO5NNNC", lcsc: "C1525" },
   C1u: { mpn: "CL05A105KA5NQNC", lcsc: "C52923" },
   C4u7_0603: { mpn: "CL10A475KO8NNNC", lcsc: "C19666" },
   C10u_0603: { mpn: "CL10A106KP8NNNC", lcsc: "C19702" },
   C10u_0805: { mpn: "CL21A106KAYNNNE", lcsc: "C15850" },
   LED_RED_0603: { mpn: "KT-0603R", lcsc: "C2286" },
+  // GHz-band ferrite bead: 1 kOhm at 100 MHz, 250 mA, 1.1 Ohm DC
+  FB_GHZ: { mpn: "BLM15HG102SN1D", lcsc: "C76889" },
 }
 
 const part = ({ mpn, lcsc }: { mpn: string; lcsc: string }) => ({
@@ -87,7 +90,7 @@ const GND_VIAS: [number, number][] = [
   [-3.53, 1.7], [-2.05, 1.4], [-3.2, -5.5],
   [3.95, 6.4], [3.95, 7.65],
   [5.25, -3.5], [3.55, -1.45],
-  [-7.5, 7.75], [-6.9, 2.5], [-6.9, 1], [-5.5, -8.5], [-5.5, -11.5], [-5.5, -14.5],
+  [-7.5, 7.75], [-6.9, 2.5], [-4.7, -11.9], [-5.5, -14.5],
   [7.5, 3], [7.5, 0.5], [7.3, -1], [7.5, -3], [7.5, -6.5], [5.5, -9.5], [5.5, -13],
   [-2, -11.5], [2, -11.5], [0, -10.6], [-0.5, -4.4], [-4, -8], [4.5, -8],
 ]
@@ -1242,15 +1245,20 @@ export default ({ pours = true }: { pours?: boolean }) => (
       connections={{ pin1: "net.ADC_CS", pin2: "net.V3_3" }}
     />
     {/* Input RC filter: 1k + 1k + 10nF C0G differential (~8 kHz); C0G because
-        X7R is piezoelectric and TI asks for C0G here */}
+        X7R is piezoelectric and TI asks for C0G here. BLE TX couples into the
+        inputs (#23), so each input also has 22 pF C0G (self-resonant near
+        2.4 GHz) and 1 nF C0G common-mode to GND between its resistor and the
+        pin, and a GHz ferrite at J3. AIN1: pin, C21, C12, R8 (C23 at R8);
+        AIN0: pin, C12, C20, C22, R7. */}
     <resistor
       name="R7"
       resistance="1k"
       footprint="0402"
       {...part(PARTS.R1k)}
       layer="bottom"
-      pcbX={-4.95}
-      pcbY={1.1}
+      pcbX={-4.6}
+      pcbY={3.03}
+      pcbRotation={180}
       schSectionName="adc"
       schX={18}
       schY={-7}
@@ -1285,6 +1293,67 @@ export default ({ pours = true }: { pours?: boolean }) => (
       schRotation={90}
       connections={{ pin1: "net.ADC_AIN0", pin2: "net.ADC_AIN1" }}
     />
+    {/* RF and common-mode capacitors (#23). Vias can't go under U1's left pad
+        column, so the AIN0 pair returns to C11's GND pad and via, C21 through a
+        via to U1's GND20 pad and C23 to C3's GND pad. */}
+    <capacitor
+      name="C20"
+      capacitance="22pF"
+      footprint="0402"
+      {...part(PARTS.C22p)}
+      layer="bottom"
+      pcbX={-4.95}
+      pcbY={1.1}
+      pcbRotation={180}
+      schSectionName="adc"
+      schX={20.5}
+      schY={-4.5}
+      schRotation={-90}
+      connections={{ pin1: "net.ADC_AIN0", pin2: "net.GND" }}
+    />
+    <capacitor
+      name="C22"
+      capacitance="1nF"
+      footprint="0402"
+      {...part(PARTS.C1n_C0G)}
+      layer="bottom"
+      pcbX={-4.95}
+      pcbY={2.06}
+      pcbRotation={180}
+      schSectionName="adc"
+      schX={21.75}
+      schY={-4.5}
+      schRotation={-90}
+      connections={{ pin1: "net.ADC_AIN0", pin2: "net.GND" }}
+    />
+    <capacitor
+      name="C21"
+      capacitance="22pF"
+      footprint="0402"
+      {...part(PARTS.C22p)}
+      layer="bottom"
+      pcbX={-6.6}
+      pcbY={-0.95}
+      schSectionName="adc"
+      schX={23}
+      schY={-4.5}
+      schRotation={-90}
+      connections={{ pin1: "net.ADC_AIN1", pin2: "net.GND" }}
+    />
+    <capacitor
+      name="C23"
+      capacitance="1nF"
+      footprint="0402"
+      {...part(PARTS.C1n_C0G)}
+      layer="bottom"
+      pcbX={-7.0}
+      pcbY={1.1}
+      schSectionName="adc"
+      schX={24.25}
+      schY={-4.5}
+      schRotation={-90}
+      connections={{ pin1: "net.ADC_AIN1", pin2: "net.GND" }}
+    />
     <WirePads
       name="J3"
       displayName="J3 - Load cell"
@@ -1298,18 +1367,49 @@ export default ({ pours = true }: { pours?: boolean }) => (
         { label: "E_N", silk: "E-" },
       ]}
       silkOffsetX={1.6}
+      // FB1/FB2 sit beside the pads on the top side
+      silkLayers={["bottom"]}
       pcbX={-7.0}
       pcbY={-10.55}
       connections={{
         E_P: "net.LC_EP",
-        S_P: "net.LC_SP",
-        S_N: "net.LC_SN",
+        S_P: "net.LC_SP_J3",
+        S_N: "net.LC_SN_J3",
         E_N: "net.LC_EN",
       }}
     />
+    {/* GHz ferrites in the signal lines at the cable entry (#23), on the top
+        side between J3 and J2's shell-leg slot */}
+    <chip
+      name="FB1"
+      footprint="0402"
+      {...part(PARTS.FB_GHZ)}
+      pinLabels={{ pin1: "pin1", pin2: "pin2" }}
+      pcbX={-5.66}
+      pcbY={-9.45}
+      pcbRotation={90}
+      schSectionName="adc"
+      schX={16.5}
+      schY={-5.5}
+      connections={{ pin1: "net.LC_SP_J3", pin2: "net.LC_SP" }}
+    />
+    <chip
+      name="FB2"
+      footprint="0402"
+      {...part(PARTS.FB_GHZ)}
+      pinLabels={{ pin1: "pin1", pin2: "pin2" }}
+      pcbX={-5.66}
+      pcbY={-11.65}
+      pcbRotation={270}
+      schSectionName="adc"
+      schX={16.5}
+      schY={-10.5}
+      connections={{ pin1: "net.LC_SN_J3", pin2: "net.LC_SN" }}
+    />
     {/* Load cell lines to J3 by hand, laid out so they don't cross: E- on the
-        bottom right of the E+, S+ and S- holes, E+ on inner1 down x = -6.4 and
-        S+ right of it (S- is in lib/handRoutes.ts) */}
+        bottom right of the E+, S+ and S- holes, E+ on inner1 down x = -6.4, and
+        S+/S- as a pair on inner1 (0.35 mm apart from x = -5.3) to the
+        ferrites, S- passing west of the S+ via */}
     <trace
       from=".R22 > .pin2"
       to=".J3 > .pin1"
@@ -1319,13 +1419,32 @@ export default ({ pours = true }: { pours?: boolean }) => (
         [-6.4, -2.4], [-6.4, -6.4],
       ])}
     />
+    <trace from=".J3 > .pin2" to=".FB1 > .pin1" pcbPath={[...boardPath([-7, -10.55, 0], [[-6.1, -9.96]]), ".FB1 > .pin1"]} />
     <trace
-      from=".R7 > .pin2"
-      to=".J3 > .pin2"
-      pcbPath={boardPath([-4.95, 1.1, 0], [
-        [-5.0, 1.9], [-5.0, 1.9, "bottom", "inner1"], [-5.0, 1.9],
-        [-5.9, 1.0], [-5.9, -7.6], [-6.3, -8.4],
-      ])}
+      from=".FB1 > .pin2"
+      to=".R7 > .pin2"
+      pcbPath={[
+        ...boardPath([-5.66, -9.45, 90], [
+          [-5.66, -8.5], [-5.5, -8.2], [-5.5, -8.2, "top", "inner1"], [-5.5, -8.2],
+          [-5.3, -7.4], [-5.3, -1.1], [-4.95, -0.75], [-4.95, 2.8],
+          [-4.09, 3.65], [-4.09, 3.65, "inner1", "bottom"], [-4.09, 3.65],
+        ]),
+        ".R7 > .pin2",
+      ]}
+    />
+    <trace from=".J3 > .pin3" to=".FB2 > .pin1" pcbPath={[...boardPath([-7, -10.55, 0], [[-6.1, -11.14]]), ".FB2 > .pin1"]} />
+    <trace
+      from=".FB2 > .pin2"
+      to=".R8 > .pin2"
+      pcbPath={[
+        ...boardPath([-5.66, -11.65, 270], [
+          [-5.66, -12.6], [-5.5, -12.9], [-5.5, -12.9, "top", "inner1"], [-5.5, -12.9],
+          [-5.6, -12.4], [-5.6, -9.0], [-6.0, -8.6], [-6.0, -7.75], [-5.65, -7.3],
+          [-5.65, -1.45], [-6.25, -0.85], [-7.4, -0.85],
+          [-7.85, -0.4], [-7.85, -0.4, "inner1", "bottom"], [-7.85, -0.4],
+        ]),
+        ".R8 > .pin2",
+      ]}
     />
     <trace
       from=".U3 > .REFN0"
@@ -1364,7 +1483,19 @@ export default ({ pours = true }: { pours?: boolean }) => (
       to=".C12 > .pin1"
       pcbPath={boardPath([-3.2, -2.88, 0], [[-3.95, -0.6], [-4.49, -0.22]])}
     />
-    <trace from=".C12 > .pin1" to=".R7 > .pin1" pcbPath={[".R7 > .pin1"]} />
+    <trace
+      from=".C12 > .pin1"
+      to=".C20 > .pin1"
+      pcbPath={[...boardPath([-5.0, 0.1, 0], [[-4.49, 0.5], [-5.46, 0.8]]), ".C20 > .pin1"]}
+    />
+    <trace from=".C20 > .pin1" to=".C22 > .pin1" pcbPath={[".C22 > .pin1"]} />
+    <trace
+      from=".C22 > .pin1"
+      to=".R7 > .pin1"
+      pcbPath={[...boardPath([-4.95, 2.06, 180], [[-5.11, 2.45]]), ".R7 > .pin1"]}
+    />
+    <trace from=".C22 > .pin2" to=".C20 > .pin2" thickness="0.25mm" pcbPath={[".C20 > .pin2"]} />
+    <trace from=".C20 > .pin2" to=".C11 > .pin2" thickness="0.25mm" pcbPath={[".C11 > .pin2"]} />
     {/* AVDD/DVDD: to their bypass capacitors, which are joined, and from C13
         through a via in its 3V3 pad and inner1 to the 3V3 trunk at (-2, 2.6).
         AIN0, DRDY and the GND pads of C11/C13 close this corner on the bottom;
@@ -1401,10 +1532,27 @@ export default ({ pours = true }: { pours?: boolean }) => (
     />
     <trace
       from=".U3 > .AIN1"
+      to=".C21 > .pin1"
+      pcbPath={[...boardPath([-3.2, -2.88, 0], [[-5.51, -1.6], [-5.75, -1.35], [-6.09, -1.35]]), ".C21 > .pin1"]}
+    />
+    <trace
+      from=".C21 > .pin1"
       to=".C12 > .pin2"
-      pcbPath={boardPath([-3.2, -2.88, 0], [[-5.51, -1.6]])}
+      pcbPath={[...boardPath([-6.6, -0.95, 0], [[-5.51, -0.4]]), ".C12 > .pin2"]}
     />
     <trace from=".C12 > .pin2" to=".R8 > .pin1" pcbPath={[".R8 > .pin1"]} />
+    <trace from=".R8 > .pin1" to=".C23 > .pin1" pcbPath={[".C23 > .pin1"]} />
+    {/* C21's GND through a via to U1's GND20 pad on the top side; C23's to C3's */}
+    <trace
+      from=".C21 > .pin2"
+      to=".U1 > .GND20"
+      thickness="0.25mm"
+      pcbPath={[
+        ...boardPath([-6.6, -0.95, 0], [[-7.75, -1.6], [-7.75, -1.6, "bottom", "top"], [-7.75, -1.6]]),
+        ".U1 > .GND20",
+      ]}
+    />
+    <trace from=".C23 > .pin2" to=".C3 > .pin2" thickness="0.25mm" pcbPath={[".C3 > .pin2"]} />
     <trace
       from=".U3 > .REFP0"
       to=".C14 > .pin1"

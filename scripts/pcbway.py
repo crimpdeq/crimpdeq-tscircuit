@@ -26,6 +26,8 @@ PARTS = {
     "0402CG220J500NT": ("FH (Guangdong Fenghua)", "0402", "22pF 50V C0G 5%"),
     "CL05B103KB5NNNC": ("Samsung Electro-Mechanics", "0402", "10nF 50V X7R 10%"),
     "GRM1555C1E103JE01D": ("Murata", "0402", "10nF 25V C0G 5%"),
+    "GRM1555C1H102JA01D": ("Murata", "0402", "1nF 50V C0G 5%"),
+    "BLM15HG102SN1D": ("Murata", "0402", "Ferrite bead 1kOhm@100MHz GHz-band 250mA"),
     "CL05B104KO5NNNC": ("Samsung Electro-Mechanics", "0402", "100nF 16V X7R 10%"),
     "CL05A105KA5NQNC": ("Samsung Electro-Mechanics", "0402", "1uF 25V X5R 10%"),
     "CL10A475KO8NNNC": ("Samsung Electro-Mechanics", "0603", "4.7uF 16V X5R 10%"),
@@ -41,6 +43,9 @@ NOTES = {mpn: "Equivalent substitute OK (same value, package, rating)"
          if desc.startswith(("Resistor", "LED red")) or mpn.startswith(("CL", "0402CG"))}
 NOTES["FTC252012S2R2MBCA"] = "Substitute only with 2.2uH 2520, Isat >= 2A, DCR <= 100mOhm"
 NOTES["GRM1555C1E103JE01D"] = "C0G/NP0 only (no X7R/X5R): 10nF 0402, >= 16V"
+NOTES["GRM1555C1H102JA01D"] = "C0G/NP0 only (no X7R/X5R): 1nF 0402, >= 16V"
+NOTES["0402CG220J500NT"] = "C0G/NP0 only (no X7R/X5R): 22pF 0402, >= 16V"
+NOTES["BLM15HG102SN1D"] = "Substitute only with a GHz-band 0402 ferrite bead, 1kOhm@100MHz, >= 200mA"
 NOTES["B5819WS"] = "Any B5819WS in SOD-323; cathode per silkscreen band"
 
 source = {e["source_component_id"]: e for e in cj if e["type"] == "source_component"}
