@@ -122,6 +122,12 @@ core already does for autorouted vias. `scripts/drc.ts` (`throughVias`) fails on
 any via that doesn't span all layers, and `npm run fab` fails on any drill file
 besides `drill-PTH.drl` and `drill-NPTH.drl`.
 
+`npm run fab` also joins each slot (J2's shell legs) onto one `X..Y..G85X..Y..`
+line: the exporter puts the start hit and `G85` on separate lines, which GerbView
+reads as one route through the following holes, and `npm run fab` fails if a `G85`
+line is left without its start. The zip leaves out `F_Fab.gbr` and `B_Fab.gbr`
+(assembly outlines, which the assembly drawings carry).
+
 ## Online viewer
 
 <https://tscircuit.crimpdeq.com> serves the PCB, schematic and 3D viewer as a
