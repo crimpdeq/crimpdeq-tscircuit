@@ -1,5 +1,9 @@
 # Crimpdeq PCB — ADS1220 variant (tscircuit)
 
+> [!WARNING]
+> This repository is superseded and will be archived. The design now lives in
+> [crimpdeq-pcb](https://github.com/crimpdeq/crimpdeq-pcb); open issues and pull requests there.
+
 tscircuit port of [crimpdeq-pcb v2.0.0](https://github.com/crimpdeq/crimpdeq-pcb/tree/v2.0.0)
 with the HX711 replaced by a TI ADS1220 24-bit ADC.
 
